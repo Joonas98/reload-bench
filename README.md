@@ -52,27 +52,13 @@ generated impulse response for the room or environment reverb. Randomness comes 
 shown in the app is the seed, so the same take with the same settings always produces the same sound. WAV encoding and
 the ZIP archive for batch exports are written by hand in JavaScript, so no libraries are needed.
 
-## Project structure
+## Run your own copy
 
-```
-index.html              the whole app: markup, styles and script
-og-image.png            link preview image for Discord, Slack, X and similar
-reload-bench-logo.svg   logo in vector form
-favicon.*, icon-*.png   browser, home-screen and install icons
-site.webmanifest        web app manifest
-```
+The easiest way to use Reload Bench is the [live version](https://joonas98.github.io/reload-bench/). If you'd rather
+use it offline or host a copy yourself, download this repository. Everything is in a single `index.html` with no build
+step or dependencies.
 
-## Running locally
-
-There is no build step. Open `index.html` directly in a browser, or serve the folder with any static server:
-
-```
-python -m http.server 8000
-```
-
-Fonts load from Google Fonts. Offline, the page falls back to system fonts and still works.
-
-## Deployment
-
-The repository root is the site. It is published with GitHub Pages from the `main` branch, and it works unchanged on
-any static host (Netlify, Cloudflare Pages, itch.io as an HTML project, or a plain web server).
+- **Offline:** open `index.html` in any modern browser. Without an internet connection the fonts fall back to system
+  fonts; everything else works the same.
+- **On your own site:** upload the files as they are to any static host, such as GitHub Pages, Netlify, Cloudflare
+  Pages or itch.io (as an HTML project).
