@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reload Bench</title>
+<meta name="description" content="Synthesize weapon reloads, gunshots and bullet impacts in your browser, then export WAV sound effects for your game.">
+<meta name="theme-color" content="#131619">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="favicon-16.png" type="image/png" sizes="16x16">
+<link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
+<link rel="manifest" href="site.webmanifest">
+<link rel="canonical" href="https://joonas98.github.io/reload-bench/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Reload Bench">
+<meta property="og:title" content="Reload Bench">
+<meta property="og:description" content="Synthesize weapon reloads, gunshots and bullet impacts in your browser, then export WAV sound effects for your game.">
+<meta property="og:url" content="https://joonas98.github.io/reload-bench/">
+<meta property="og:image" content="https://joonas98.github.io/reload-bench/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Reload Bench logo: an off-white R and brass B on gunmetal">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Reload Bench">
+<meta name="twitter:description" content="Synthesize weapon reloads, gunshots and bullet impacts in your browser, then export WAV sound effects for your game.">
+<meta name="twitter:image" content="https://joonas98.github.io/reload-bench/og-image.png">
+<style>
+html{-webkit-text-size-adjust:100%}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+img,svg{max-width:100%}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Saira+Condensed:wght@600;700&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#131619; --panel:#1b1f23; --panel-2:#20252a; --line:#2d343b; --steel:#3b444c;
+  --text:#e5e1d7; --muted:#8e959b; --faint:#5d656c;
+  --brass:#caa24c; --brass-hi:#e2bd67; --brass-dim:#6f5a2b; --brass-ink:#1a1408;
+  --off:#454c53;
+  --display:"Saira Condensed","Arial Narrow",Impact,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:14px;line-height:1.5}
+.wrap{max-width:1100px;margin:0 auto;padding-inline:clamp(16px,3vw,28px);padding-block:28px 48px;display:grid;gap:22px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 24px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(34px,6vw,52px);line-height:.9;letter-spacing:.02em;text-transform:uppercase;margin:0;text-wrap:balance}
+h1 span{color:var(--brass)}
+.brand{display:flex;align-items:center;gap:14px}
+.brand .mark{width:clamp(40px,7vw,58px);height:auto;flex:none}
+.lede{margin:6px 0 0;color:var(--muted);max-width:60ch}
+.keys{font-family:var(--mono);font-size:12px;color:var(--faint)}
+kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-bottom-width:2px;border-radius:3px;padding:0 5px;color:var(--muted)}
+.label{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0 0 10px}
+
+/* platform picker */
+.platforms{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:620px){.platforms{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.plat{appearance:none;text-align:left;background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:4px;padding:10px 12px;cursor:pointer;display:grid;gap:2px;font:inherit;transition:border-color .12s,background .12s}
+.plat:hover{border-color:var(--steel);background:var(--panel-2)}
+.plat b{font-family:var(--display);font-weight:600;font-size:19px;letter-spacing:.03em;text-transform:uppercase;line-height:1.1}
+.plat small{font-family:var(--mono);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.plat[aria-pressed="true"]{border-color:var(--brass);background:linear-gradient(180deg,rgba(202,162,76,.13),rgba(202,162,76,.03))}
+.plat[aria-pressed="true"] b{color:var(--brass-hi)}
+
+/* scope */
+.scope{background:var(--panel);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.scope canvas{display:block;width:100%;height:200px;cursor:pointer;touch-action:pan-y}
+.transport{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px;border-top:1px solid var(--line);background:var(--panel-2)}
+.btn{appearance:none;font:inherit;font-weight:500;border-radius:4px;border:1px solid var(--steel);background:transparent;color:var(--text);padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;line-height:1.2}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--brass);border-color:var(--brass);color:var(--brass-ink);font-weight:600}
+.btn.primary:hover{background:var(--brass-hi);border-color:var(--brass-hi)}
+.btn svg{width:14px;height:14px;fill:currentColor}
+.readout{margin-left:auto;display:flex;gap:18px;font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.readout b{color:var(--text);font-weight:500}
+.check{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;cursor:pointer}
+.check input{accent-color:var(--brass)}
+
+/* lower grid */
+.modes{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--line)}
+.modes button{appearance:none;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-1px;color:var(--muted);font-family:var(--display);font-size:24px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:4px 16px 8px;cursor:pointer}
+.modes button:hover{color:var(--text)}
+.modes button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--brass)}
+.modes small{font-family:var(--mono);font-size:11px;font-weight:400;letter-spacing:.06em;color:var(--faint);margin-left:8px;text-transform:none}
+.envrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+.seg{display:inline-flex}
+.seg button{appearance:none;font:inherit;font-weight:500;background:var(--bg);color:var(--muted);border:1px solid var(--line);padding:6px 14px;cursor:pointer;margin-left:-1px}
+.seg button:first-child{border-radius:4px 0 0 4px;margin-left:0}.seg button:last-child{border-radius:0 4px 4px 0}
+.seg button:hover{color:var(--text)}
+.seg button[aria-pressed="true"]{background:var(--brass);border-color:var(--brass);color:var(--brass-ink);position:relative}
+[hidden]{display:none!important}
+.lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:22px;align-items:start}
+@media (max-width:760px){.lower{grid-template-columns:1fr}.readout{margin-left:0;width:100%}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px}
+.chips{display:grid;gap:6px}
+.step{display:grid;grid-template-columns:30px minmax(0,1fr) 92px 30px;align-items:center;gap:6px;padding:4px 4px 4px 2px;border-radius:4px;border:1px solid var(--line);background:var(--bg)}
+.step:hover{border-color:var(--steel)}
+.step .tog,.step .del{appearance:none;background:none;border:0;padding:0;width:30px;height:30px;display:grid;place-items:center;cursor:pointer;color:var(--faint);border-radius:3px;font:inherit}
+.step .del:hover{color:var(--text);background:var(--panel-2)}
+.step .dot{width:10px;height:10px;border-radius:50%;border:2px solid var(--brass)}
+.step .tog[aria-pressed="true"] .dot{background:var(--brass)}
+.step .tog[aria-pressed="false"] .dot{border-color:var(--off)}
+.step.off .nm{color:var(--faint);text-decoration:line-through}
+.step.past .nm::after{content:" · past end";color:#d9826b;font-size:12px}
+.step .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tin{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+input[type=number]{width:100%;min-width:0;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:3px;padding:4px 6px}
+input[type=number]:hover{border-color:var(--steel)}
+select{font:inherit;background:var(--panel-2);color:var(--text);border:1px solid var(--steel);border-radius:4px;padding:7px 8px;min-width:0;flex:1}
+.lenrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+.lenrow .lenin{display:flex;align-items:center;gap:6px;font-weight:500}
+.lenrow .lenin input{width:84px;font-size:15px;padding:6px 8px}
+.addrow{display:flex;gap:8px;margin-top:10px}
+.hint{font-size:12px;color:var(--faint);margin:10px 0 0}
+
+.sliders{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 22px}
+@media (max-width:460px){.sliders{grid-template-columns:1fr}}
+.sl{display:grid;gap:6px;align-content:start}
+.sl .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.sl label{font-weight:500}
+.sl output{font-family:var(--mono);font-size:12px;color:var(--brass);font-variant-numeric:tabular-nums;white-space:nowrap}
+.sl p{margin:0;font-size:12px;color:var(--faint)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;margin:0;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--brass-dim) var(--p,50%),var(--line) var(--p,50%))}
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--brass-dim) var(--p,50%),var(--line) var(--p,50%))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:18px;margin-top:-7px;border-radius:2px;background:var(--brass);border:1px solid var(--brass-hi)}
+input[type=range]::-moz-range-thumb{width:14px;height:18px;border-radius:2px;background:var(--brass);border:1px solid var(--brass-hi)}
+:focus-visible{outline:2px solid var(--brass-hi);outline-offset:2px}
+
+.export{margin-top:18px;padding-top:16px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.export .note{flex-basis:100%;font-size:12px;color:var(--faint);margin:0}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--panel-2);border:1px solid var(--brass-dim);color:var(--text);padding:8px 14px;border-radius:4px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:calc(100% - 32px)}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="mark" aria-hidden="true" focusable="false"><rect x="2.0" y="2.0" width="508" height="508" rx="96" fill="#131619" stroke="#2d343b" stroke-width="4"/><path fill="#e5e1d7" fill-rule="evenodd" d="M92.00,111.00 L132.00,111.00 L132.00,401.00 L92.00,401.00 Z"/><path fill="#e5e1d7" fill-rule="evenodd" d="M92.00,111.00 L210.00,111.00 L242.00,143.00 L242.00,238.50 L210.00,270.50 L92.00,270.50 Z M132.00,230.50 L186.56,230.50 L202.00,215.06 L202.00,166.44 L186.56,151.00 L132.00,151.00 Z"/><path fill="#e5e1d7" fill-rule="evenodd" d="M155.00,230.50 L197.00,230.50 L242.00,401.00 L196.00,401.00 Z"/><path fill="#caa24c" fill-rule="evenodd" d="M270.00,111.00 L310.00,111.00 L310.00,401.00 L270.00,401.00 Z"/><path fill="#caa24c" fill-rule="evenodd" d="M270.00,111.00 L373.00,111.00 L405.00,143.00 L405.00,235.30 L373.00,267.30 L270.00,267.30 Z M310.00,227.30 L349.56,227.30 L365.00,211.86 L365.00,166.44 L349.56,151.00 L310.00,151.00 Z"/><path fill="#caa24c" fill-rule="evenodd" d="M270.00,227.30 L388.00,227.30 L420.00,259.30 L420.00,369.00 L388.00,401.00 L270.00,401.00 Z M310.00,361.00 L364.56,361.00 L380.00,345.56 L380.00,282.74 L364.56,267.30 L310.00,267.30 Z"/></svg><h1>Reload <span>Bench</span></h1></div>
+      <p class="lede">Synthesized weapon foley. Build reloads step by step, design single shots and bullet impacts, then export WAV takes. Every sound is generated in your browser, so it's yours to use.</p>
+    </div>
+    <div class="keys"><kbd>Space</kbd> play &nbsp; <kbd>V</kbd> new take &nbsp; <kbd>Shift</kbd>+drag fine</div>
+  </header>
+
+  <nav class="modes" role="tablist" aria-label="Mode">
+    <button role="tab" id="tab-reload" aria-selected="true">Reload<small>step sequence</small></button>
+    <button role="tab" id="tab-shot" aria-selected="false">Shot<small>single fire</small></button>
+    <button role="tab" id="tab-impact" aria-selected="false">Impact<small>bullet hits</small></button>
+  </nav>
+
+  <section aria-label="Platform">
+    <p class="label">Platform</p>
+    <div class="platforms" id="platforms"></div>
+  </section>
+
+  <section class="scope" aria-label="Waveform">
+    <canvas id="scope" aria-label="Waveform of the current reload take. Click to play."></canvas>
+    <div class="transport">
+      <button class="btn primary" id="play"><svg viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z"/></svg>Play</button>
+      <button class="btn" id="vary" title="Same settings, new random take">New take</button>
+      <button class="btn" id="surprise" title="Randomize every slider">Surprise me</button>
+      <label class="check"><input type="checkbox" id="autoplay" checked> Play on change</label>
+      <div class="readout"><span>Take <b id="take">0001</b></span><span>Length <b id="len">0.00 s</b></span><span>Peak <b>−1 dBFS</b></span></div>
+    </div>
+  </section>
+
+  <div class="lower" id="reloadUI">
+    <section class="card" aria-label="Sequence">
+      <p class="label">Sequence</p>
+      <div class="lenrow">
+        <label class="lenin" for="clipLen">Clip length <input type="number" id="clipLen" min="0.3" max="10" step="0.05" value="2.05"> s</label>
+        <label class="check"><input type="checkbox" id="scaleSteps" checked> Move steps with length</label>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="addrow"><select id="addType" aria-label="Step to add"></select><button class="btn" id="addStep">Add step</button></div>
+      <p class="hint">Each time marks the step's main impact, the frame to sync with animation. Drag a marker or type a time. The dot mutes a step.</p>
+    </section>
+
+    <section class="card" aria-label="Shape">
+      <p class="label">Shape</p>
+      <div class="sliders" id="sliders"></div>
+      <div class="export">
+        <button class="btn primary" id="exp1">Export this take</button>
+        <button class="btn" id="exp6">Export 6 takes</button>
+        <p class="note">Files arrive as a .zip holding 44.1 kHz 16-bit stereo WAVs, exactly the clip length, peak-normalized. Multiple takes help avoid repetition in-game.</p>
+      </div>
+    </section>
+  </div>
+
+  <div class="lower" id="shotUI" hidden>
+    <section class="card" aria-label="Layers">
+      <p class="label">Layers</p>
+      <div class="lenrow">
+        <label class="lenin" for="shotLen">Clip length <input type="number" id="shotLen" min="0.1" max="6" step="0.05" value="1.60"> s</label>
+        <label class="check"><input type="checkbox" id="shotAuto" checked> Fit to tail</label>
+      </div>
+      <div class="sliders" id="xLayers"></div>
+      <p class="hint">The shot fires 12 ms into the clip, so it plays the instant your game triggers it.</p>
+    </section>
+    <section class="card" aria-label="Shot shape">
+      <p class="label">Shape</p>
+      <div class="envrow">
+        <div class="seg" role="group" aria-label="Environment"><button id="env-indoor" aria-pressed="false">Indoor</button><button id="env-outdoor" aria-pressed="true">Outdoor</button><button id="env-urban" aria-pressed="false">Urban</button></div>
+        <label class="check"><input type="checkbox" id="sup"> Suppressor</label>
+      </div>
+      <div class="sliders" id="xShape"></div>
+      <div class="export">
+        <button class="btn primary" id="xexp1">Export this shot</button>
+        <button class="btn" id="xexp6">Export 6 variations</button>
+        <p class="note">44.1 kHz 16-bit stereo WAVs in a .zip. Round-robin the six variations so rapid fire never repeats one sample.</p>
+      </div>
+    </section>
+  </div>
+
+  <div class="lower" id="impactUI" hidden>
+    <section class="card" aria-label="Impact layers">
+      <p class="label">Layers</p>
+      <div class="lenrow">
+        <label class="lenin" for="impLen">Clip length <input type="number" id="impLen" min="0.1" max="6" step="0.05" value="0.80"> s</label>
+        <label class="check"><input type="checkbox" id="impAuto" checked> Fit to tail</label>
+      </div>
+      <div class="sliders" id="iLayers"></div>
+      <p class="hint">The hit lands 5 ms into the clip. Crunch means bone on flesh, splinters on wood, fracture on rock and glass.</p>
+    </section>
+    <section class="card" aria-label="Impact shape">
+      <p class="label">Shape</p>
+      <div class="envrow">
+        <div class="seg" role="group" aria-label="Environment"><button id="ienv-indoor" aria-pressed="false">Indoor</button><button id="ienv-outdoor" aria-pressed="true">Outdoor</button><button id="ienv-urban" aria-pressed="false">Urban</button></div>
+        <label class="check" id="headWrap"><input type="checkbox" id="head"> <span id="headLbl">Headshot</span></label>
+      </div>
+      <div class="sliders" id="iShape"></div>
+      <div class="export">
+        <button class="btn primary" id="iexp1">Export this impact</button>
+        <button class="btn" id="iexp6">Export 6 variations</button>
+        <p class="note">44.1 kHz 16-bit stereo WAVs in a .zip. Pick a random variation per hit so repeated impacts never sound identical.</p>
+      </div>
+    </section>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---------- data ---------- */
+const LABELS={handling:'Handling',magOut:'Mag out',magIn:'Mag in',magTap:'Mag seat tap',boltBack:'Bolt back',boltFwd:'Bolt forward',slideFwd:'Slide release',pumpBack:'Pump back',pumpFwd:'Pump forward',shellIn:'Shell in',cylOpen:'Cylinder open',eject:'Casings drop',speedloader:'Speedloader',cylClose:'Cylinder close',cylSpin:'Cylinder spin',boltUp:'Bolt up',boltDown:'Bolt down',lidOpen:'Feed cover open',boxOut:'Box mag out',boxIn:'Box mag in',beltIn:'Belt seat',lidClose:'Feed cover slam',cellOut:'Cell eject',cellIn:'Cell in',charge:'Charge up',ready:'Ready tone'};
+const PRESETS={
+  pistol:{name:'Pistol',weight:.3,ev:[['handling',0],['magOut',.12],['magIn',.72],['slideFwd',1.02]]},
+  rifle:{name:'Rifle',weight:.55,ev:[['handling',0],['magOut',.18],['magIn',.86],['magTap',1.0],['boltBack',1.36],['boltFwd',1.58]]},
+  smg:{name:'SMG',weight:.35,ev:[['magOut',.08],['magIn',.52],['boltBack',.78],['boltFwd',.9]]},
+  shotgun:{name:'Pump Shotgun',weight:.7,ev:[['shellIn',.05],['shellIn',.5],['shellIn',.95],['shellIn',1.4],['pumpBack',1.82],['pumpFwd',2.05]]},
+  revolver:{name:'Revolver',weight:.45,ev:[['cylOpen',0],['eject',.2],['speedloader',.9],['cylClose',1.3],['cylSpin',1.45]]},
+  bolt:{name:'Bolt Action',weight:.55,ev:[['boltUp',0],['boltBack',.1],['shellIn',.5],['shellIn',.85],['boltFwd',1.2],['boltDown',1.36]]},
+  lmg:{name:'LMG',weight:.85,ev:[['lidOpen',0],['boxOut',.45],['boxIn',1.25],['beltIn',1.6],['lidClose',2.0],['boltBack',2.45],['boltFwd',2.68]]},
+  energy:{name:'Energy Rifle',weight:.4,ev:[['cellOut',0],['cellIn',.75],['charge',.95],['ready',1.55]]}
+};
+const CTRL=[
+  {id:'weight',label:'Weight',min:0,max:1,step:.01,v:.55,desc:'Size of the parts. Heavier is lower and longer.',fmt:v=>(v<.34?'Light':v<.67?'Medium':'Heavy')+' · '+Math.round(v*100)},
+  {id:'bright',label:'Metal',min:0,max:1,step:.01,v:.55,desc:'Damped polymer up to ringing steel.',fmt:v=>(v<.34?'Dull':v<.67?'Steel':'Bright')+' · '+Math.round(v*100)},
+  {id:'grit',label:'Grit',min:0,max:1,step:.01,v:.5,desc:'Friction and scrape between the hits.',fmt:v=>Math.round(v*100)+'%'},
+  {id:'room',label:'Room',min:0,max:1,step:.01,v:.25,desc:'Short space reflection around the gun.',fmt:v=>v<.01?'Dry':(0.15+v*1.1).toFixed(2)+' s tail'},
+  {id:'vary',label:'Tone variation',min:0,max:1,step:.01,v:.4,desc:'How different each take sounds from the last.',fmt:v=>Math.round(v*100)+'%'},
+  {id:'drift',label:'Timing drift',min:0,max:40,step:1,v:0,desc:'Random offset per step, per take. Keep at 0 to stay synced to an animation.',fmt:v=>v?'±'+v+' ms':'Locked'}
+];
+const P={}; CTRL.forEach(c=>P[c.id]=c.v);
+let mode='reload', shotKey='rifle', shotSeed=77, shotLen=1.6, shotAuto=true, impKey='flesh', impSeed=31, impLen=.8, impAuto=true;
+let presetKey='rifle', seed=412, stepId=0, steps=[], clipLen=2;
+const ANCHOR={magIn:.1,boltFwd:.03,slideFwd:.03,pumpBack:.14,pumpFwd:.12,shellIn:.06,boxOut:.14,boxIn:.12,cellIn:.07};
+const anc=type=>ANCHOR[type]||0;
+const defLen=p=>{const l=p.ev[p.ev.length-1];return Math.ceil((l[1]+anc(l[0])+.45)*20)/20};
+function loadPreset(k){presetKey=k;const p=PRESETS[k];steps=p.ev.map(([type,t])=>({id:++stepId,type,t:Math.round((t+anc(type))*1000)/1000,on:true}));clipLen=defLen(p)}
+loadPreset(presetKey);
+
+/* ---------- synthesis: modal impacts + friction, rendered sample by sample ---------- */
+const SR=44100, TAU=Math.PI*2;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function randn(r){return Math.sqrt(-2*Math.log(r()+1e-12))*Math.cos(TAU*r())}
+function hashStr(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+function peakNorm(a){let p=0;for(let i=0;i<a.length;i++){const v=Math.abs(a[i]);if(v>p)p=v}if(p>0)for(let i=0;i<a.length;i++)a[i]/=p;return a}
+
+// Bank of damped two-pole resonators: the "part" that rings when excited.
+function resonate(exc,modes,tailSec){
+  const N=exc.length+Math.ceil(tailSec*SR),y=new Float32Array(N);
+  for(const m of modes){
+    const w=TAU*m.f/SR,r=Math.exp(-1/(m.d*SR)),c=2*r*Math.cos(w),r2=r*r,g=(1-r2)*Math.sin(w)*m.a;
+    const len=Math.min(N,exc.length+Math.ceil(m.d*SR*7));let y1=0,y2=0;
+    for(let n=0;n<len;n++){const x=n<exc.length?exc[n]:0;const v=c*y1-r2*y2+x*g;y2=y1;y1=v;y[n]+=v}
+  }
+  return y;
+}
+
+// Each weapon gets a fixed set of parts (dense, inharmonic, heavily damped modes).
+function buildParts(key,Q){
+  const r=mulberry32(hashStr(key)^0x9e3779b9);
+  const mk=(c,sp,n,d,dsOverride)=>{const a=[],cc=c*Q.fs;for(let i=0;i<n;i++){const f=Math.min(15000,Math.max(80,cc*Math.exp(randn(r)*sp)));a.push({f,d:d*(dsOverride??Q.ds)*(.5+r())*Math.min(1.4,Math.pow(cc/f,.5)),a:.3+r()*.7})}return a};
+  return{
+    latch:mk(3800,.35,14,.005), mag:mk(1500,.55,18,.007), receiver:mk(2300,.5,20,.009),
+    bolt:mk(1800,.55,20,.013), shell:mk(2200,.45,10,.0035), brass:mk(5400,.18,6,.045,1),
+    pump:mk(850,.55,14,.009), cyl:mk(3000,.4,16,.009)
+  };
+}
+
+function makeEngine(len,rng,Q){
+  const out=new Float32Array(len),V=Q.vary,noise=()=>rng()*2-1;
+  const E={out,rng};
+  E.jit=a=>1+(rng()*2-1)*a*V;
+  E.add=(t,buf,amp)=>{const s=Math.round(t*SR);for(let i=0;i<buf.length;i++){const k=s+i;if(k>=len)break;if(k>=0)out[k]+=buf[i]*amp}};
+  // Impact: a short noise burst excites the part, plus a raw "tick" from the contact itself.
+  E.hit=(t,part,amp,hard)=>{
+    hard=hard??(.3+.65*Q.bright);
+    const L=Math.max(4,Math.round((.2+(1-hard)*2.2)/1000*SR)),n=L*5,exc=new Float32Array(n);
+    for(let i=0;i<n;i++)exc[i]=noise()*Math.exp(-i/L);
+    const modes=part.map(m=>({f:m.f*(1+randn(rng)*.02*V),d:m.d,a:m.a*(.55+.45*rng())}));
+    let md=0;for(const m of modes)md=Math.max(md,m.d);
+    const body=peakNorm(resonate(exc,modes,md*7));
+    const tick=new Float32Array(n);for(let i=1;i<n;i++)tick[i]=exc[i]-exc[i-1];peakNorm(tick);
+    const a=amp*E.jit(.3);E.add(t,body,a*.8);E.add(t,tick,a*(.15+.45*hard));
+  };
+  // Small follow-up impacts as loose parts settle.
+  E.rattle=(t,part,amp,count)=>{let tt=t;for(let i=0;i<count;i++){tt+=.004+rng()*.012;E.hit(tt,part,amp*Math.pow(.6,i)*(.5+rng()),.6)}};
+  // Body/hand thump: low-passed noise plus a few damped low modes of the gun body.
+  E.thud=(t,f,amp,dec)=>{
+    f*=Q.fs;dec*=(.8+.6*Q.weight);
+    const n=Math.round((dec*6+.01)*SR),x=new Float32Array(n),a=1-Math.exp(-TAU*f*2/SR);let l1=0,l2=0;
+    for(let i=0;i<n;i++){const e=noise()*Math.exp(-i/(dec*SR*.35));l1+=a*(e-l1);l2+=a*(l1-l2);x[i]=l2}
+    peakNorm(x);
+    const modes=[.8,1,1.37,1.93].map(k=>({f:f*k*(1+randn(rng)*.05),d:dec*(.4+rng()*.5),a:.5+rng()*.5}));
+    const exc=new Float32Array(Math.round(.003*SR));for(let i=0;i<exc.length;i++)exc[i]=noise()*(1-i/exc.length);
+    const r=peakNorm(resonate(exc,modes,dec*7));
+    E.add(t,x,amp*.6*E.jit(.25));E.add(t,r,amp*.35*E.jit(.25));
+  };
+  // Friction: stick-slip micro-impacts plus sliding noise through a sweeping band, lightly colored by the part.
+  E.scrape=(t,dur,part,amp,f0,f1,rough)=>{
+    rough=Math.min(1.4,(rough??.5)*(.3+1.4*Q.grit));dur*=E.jit(.2);f0*=Q.fs;f1*=Q.fs;
+    const n=Math.round(dur*SR),exc=new Float32Array(n),rate=250+2400*Math.min(1,rough);
+    for(let i=0;i<n;i++){const u=i/n,env=(u<.3?u/.3:1-(u-.3)/.7*.55)*Math.min(1,(n-i)/(SR*.002));
+      let v=noise()*.2;if(rng()<rate/SR)v+=(rng()<.5?-1:1)*(.4+rng()*1.3*rough);exc[i]=v*env}
+    const bp=new Float32Array(n),q=1/1.6;let low=0,band=0;
+    for(let i=0;i<n;i++){const fc=Math.min(7000,f0*Math.pow(f1/f0,i/n)),F=2*Math.sin(Math.PI*fc/SR);low+=F*band;const high=exc[i]-low-q*band;band+=F*high;bp[i]=band}
+    peakNorm(bp);
+    const res=peakNorm(resonate(exc,part.map(m=>({f:m.f,d:m.d*.3,a:m.a})),.04));
+    E.add(t,bp,amp*.55*E.jit(.2));E.add(t,res,amp*.35*E.jit(.2));
+  };
+  E.hiss=(t,dur,amp)=>{const n=Math.round(dur*SR),x=new Float32Array(n);let p=0;for(let i=0;i<n;i++){const w=noise();x[i]=(w-p)*Math.exp(-i/(n/3))*Math.min(1,i/(SR*.004));p=w}peakNorm(x);E.add(t,x,amp)};
+  E.tone=(t,dur,f0,f1,amp,type)=>{
+    const n=Math.round(dur*SR),x=new Float32Array(n),lpA=1-Math.exp(-TAU*(1500+Q.bright*5000)/SR);let ph=0,lp=0;
+    for(let i=0;i<n;i++){const u=i/n,f=f0*Q.fs*Math.pow(f1/f0,u);ph=(ph+f/SR)%1;
+      let v=type==='saw'?2*ph-1:type==='square'?(ph<.5?1:-1):type==='tri'?1-4*Math.abs(ph-.5):Math.sin(TAU*ph);
+      lp+=lpA*(v-lp);x[i]=lp*Math.min(1,i/(SR*.008))*(u>.7?(1-u)/.3:1)}
+    E.add(t,x,amp);
+  };
+  return E;
+}
+
+const EV={
+  handling:(E,t,p)=>{E.scrape(t,.22,p.mag,.3,350,800,.25);E.thud(t+.13,140,.35,.03)},
+  magOut:(E,t,p)=>{E.hit(t,p.latch,.45);E.scrape(t+.012,.09,p.mag,.55,2400,1300,.6);E.thud(t+.09,190,.3,.02);E.rattle(t+.09,p.mag,.2,2)},
+  magIn:(E,t,p)=>{E.scrape(t,.1,p.mag,.55,1100,2600,.7);E.hit(t+.1,p.mag,1);E.hit(t+.1+.003+E.rng()*.003,p.latch,.7,.9);E.thud(t+.1,170,.9,.035);E.rattle(t+.11,p.mag,.25,3)},
+  magTap:(E,t,p)=>{E.thud(t,140,1,.04);E.hit(t+.002,p.latch,.3);E.rattle(t+.004,p.mag,.2,2)},
+  boltBack:(E,t,p)=>{E.hit(t,p.receiver,.45);E.scrape(t+.005,.07,p.bolt,.6,1400,3400,.8);E.hit(t+.075,p.bolt,.7);E.rattle(t+.08,p.receiver,.2,2)},
+  boltFwd:(E,t,p)=>{E.scrape(t,.03,p.bolt,.35,3400,2000,.6);E.hit(t+.03,p.bolt,1.1,1);E.hit(t+.034,p.receiver,.6);E.thud(t+.03,200,.8,.03);E.rattle(t+.04,p.receiver,.3,4)},
+  slideFwd:(E,t,p)=>{E.hit(t,p.latch,.4);E.scrape(t+.004,.026,p.receiver,.3,3200,2000,.5);E.hit(t+.03,p.receiver,1,1);E.thud(t+.03,230,.6,.025);E.rattle(t+.035,p.latch,.25,3)},
+  pumpBack:(E,t,p)=>{E.scrape(t,.14,p.pump,.8,650,1500,.9);E.hit(t+.14,p.pump,.9);E.hit(t+.143,p.receiver,.5);E.thud(t+.14,150,.8,.04);E.rattle(t+.15,p.receiver,.2,2)},
+  pumpFwd:(E,t,p)=>{E.scrape(t,.12,p.pump,.8,1500,750,.9);E.hit(t+.12,p.pump,1);E.hit(t+.124,p.latch,.6,.9);E.thud(t+.12,170,.9,.04);E.rattle(t+.13,p.receiver,.3,3)},
+  shellIn:(E,t,p)=>{E.scrape(t,.06,p.shell,.45,2600,1400,.5);E.hit(t+.06,p.shell,.6,.4);E.hit(t+.064,p.latch,.35,.8);E.thud(t+.06,300,.35,.02)},
+  cylOpen:(E,t,p)=>{E.hit(t,p.latch,.5);E.scrape(t+.01,.05,p.cyl,.35,2500,1700,.5);E.hit(t+.06,p.cyl,.6);E.rattle(t+.065,p.cyl,.2,2)},
+  eject:(E,t,p)=>{E.scrape(t,.06,p.cyl,.3,1800,1100,.4);for(let i=0;i<6;i++){const tt=t+.09+E.rng()*.28+i*.02,a=.25+E.rng()*.2;E.hit(tt,p.brass,a,1);E.hit(tt+.04+E.rng()*.05,p.brass,a*.4,1);if(E.rng()<.5)E.hit(tt+.1+E.rng()*.06,p.brass,a*.15,1)}},
+  speedloader:(E,t,p)=>{E.scrape(t,.07,p.brass,.35,1500,3000,.6);for(let k=0;k<4;k++)E.hit(t+.07+.006*k+E.rng()*.004,p.brass,.2,1);E.hit(t+.075,p.cyl,.55);E.hit(t+.2,p.latch,.35)},
+  cylClose:(E,t,p)=>{E.hit(t,p.cyl,1,1);E.hit(t+.003,p.latch,.6);E.thud(t,220,.7,.03);E.rattle(t+.008,p.cyl,.25,3)},
+  cylSpin:(E,t,p)=>{let tt=t,gap=.016;for(let i=0;i<16;i++){E.hit(tt,p.latch,.28*(1-i/22),.9);tt+=gap;gap*=1.12}},
+  boltUp:(E,t,p)=>{E.hit(t,p.bolt,.55);E.thud(t,260,.3,.02)},
+  boltDown:(E,t,p)=>{E.hit(t,p.bolt,.8);E.hit(t+.003,p.latch,.4);E.thud(t,220,.5,.03);E.rattle(t+.006,p.receiver,.15,2)},
+  lidOpen:(E,t,p)=>{E.hit(t,p.latch,.5);E.scrape(t+.01,.1,p.receiver,.4,1200,2100,.6);E.hit(t+.12,p.receiver,.7);E.thud(t+.12,160,.6,.04)},
+  boxOut:(E,t,p)=>{E.scrape(t,.14,p.mag,.6,900,550,.8);E.thud(t+.14,110,1,.05);E.hit(t+.14,p.mag,.5,.5)},
+  boxIn:(E,t,p)=>{E.scrape(t,.12,p.mag,.6,550,1300,.8);E.hit(t+.12,p.mag,.9);E.hit(t+.124,p.latch,.6,.9);E.thud(t+.12,120,1.1,.05);E.rattle(t+.13,p.mag,.25,3)},
+  beltIn:(E,t,p)=>{E.scrape(t,.18,p.receiver,.35,1800,2600,.5);for(let i=0;i<9;i++)E.hit(t+i*.022+E.rng()*.006,i%2?p.brass:p.latch,.18+E.rng()*.1,.9)},
+  lidClose:(E,t,p)=>{E.hit(t,p.receiver,1.2,1);E.hit(t+.004,p.latch,.7);E.thud(t,130,1.2,.05);E.rattle(t+.01,p.receiver,.35,5)},
+  cellOut:(E,t,p)=>{E.hit(t,p.latch,.6);E.hiss(t+.01,.4,.45);E.tone(t,.3,900,200,.18,'tri')},
+  cellIn:(E,t,p)=>{E.scrape(t,.07,p.mag,.5,900,1800,.6);E.hit(t+.07,p.mag,.9);E.hit(t+.074,p.latch,.6,.9);E.thud(t+.07,160,.8,.03)},
+  charge:(E,t,p)=>{E.tone(t,.55,180,1400,.3,'saw');E.tone(t,.55,362,2810,.1,'square')},
+  ready:(E,t,p)=>{E.tone(t,.07,1760,1760,.25,'sine');E.tone(t+.09,.1,2637,2637,.25,'sine')}
+};
+
+function makeIR(ctx,rng){
+  const len=Math.floor(ctx.sampleRate*(0.15+P.room*1.1));
+  const ir=ctx.createBuffer(2,len,ctx.sampleRate);
+  for(let c=0;c<2;c++){const d=ir.getChannelData(c);let lp=0;for(let i=0;i<len;i++){lp+=((rng()*2-1)-lp)*.35;const u=i/len;d[i]=lp*Math.pow(1-u,2)*Math.exp(-u*3)}}
+  return ir;
+}
+
+async function renderTake(key,stp,len,sd){
+  const rng=mulberry32(sd*7919+1);
+  const times=stp.map(st=>Math.max(0,st.t+(rng()*2-1)*P.drift/1000));
+  const Q={...P,fs:1.3-.6*P.weight,ds:(.35+1.3*P.bright)*(.8+.5*P.weight)};
+  const parts=buildParts(key,Q);
+  const n=Math.max(1,Math.round(len*SR));
+  const E=makeEngine(n,rng,Q);
+  stp.forEach((st,i)=>{if(st.on&&times[i]<len)EV[st.type](E,times[i]-anc(st.type),parts)});
+  peakNorm(E.out);
+  const ctx=new OfflineAudioContext(2,n,SR);
+  const dry=ctx.createBuffer(1,n,SR);const dd=dry.getChannelData(0);for(let i=0;i<n;i++)dd[i]=E.out[i]*.9;
+  const src=ctx.createBufferSource();src.buffer=dry;
+  const comp=ctx.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=3;comp.attack.value=.001;comp.release.value=.08;comp.connect(ctx.destination);
+  const bus=ctx.createGain();bus.gain.value=.8;src.connect(bus);bus.connect(comp);
+  if(P.room>.01){const cv=ctx.createConvolver();cv.normalize=true;cv.buffer=makeIR(ctx,rng);const wet=ctx.createGain();wet.gain.value=P.room*.55;bus.connect(cv);cv.connect(wet);wet.connect(comp)}
+  src.start(0);
+  const buf=await ctx.startRendering();
+  const L=buf.getChannelData(0),R=buf.getChannelData(1);let pk=0;
+  for(let i=0;i<n;i++){const a=Math.max(Math.abs(L[i]),Math.abs(R[i]));if(a>pk)pk=a}
+  const gain=pk>0?.891/pk:1,fade=Math.min(n,Math.floor(SR*.012));
+  for(let i=0;i<n;i++){const f=i>=n-fade?(n-i)/fade:1;L[i]*=gain*f;R[i]*=gain*f}
+  return {buf};
+}
+
+/* ---------- shot synthesis ---------- */
+const SHOT={
+  pistol:{name:'Pistol',spec:'9×19 mm · semi',mech:'semi',v:{cal:.3,crack:.7,blast:.85,punch:.55,mech:.55}},
+  rifle:{name:'Rifle',spec:'5.56×45 · auto',mech:'auto',v:{cal:.55,crack:.9,blast:.9,punch:.7,mech:.45}},
+  smg:{name:'SMG',spec:'9×19 mm · auto',mech:'auto',v:{cal:.28,crack:.6,blast:.8,punch:.5,mech:.65}},
+  shotgun:{name:'Pump Shotgun',spec:'12 gauge',mech:'none',v:{cal:.92,crack:.45,blast:1,punch:1,mech:.3}},
+  revolver:{name:'Revolver',spec:'.357 Magnum',mech:'hammer',v:{cal:.62,crack:.85,blast:.95,punch:.8,mech:.35}},
+  bolt:{name:'Sniper',spec:'.338 Lapua · bolt',mech:'none',v:{cal:1,crack:1,blast:1,punch:.9,mech:.2}},
+  lmg:{name:'LMG',spec:'7.62×51 · belt',mech:'auto',v:{cal:.72,crack:.85,blast:.95,punch:.8,mech:.5}},
+  energy:{name:'Energy Rifle',spec:'Plasma cell',mech:'energy',kind:'energy',v:{cal:.45,crack:.6,blast:.8,punch:.6,mech:.4}}
+};
+const pct=v=>Math.round(v*100)+'%';
+const SLAYERS=[
+  {id:'crack',label:'Crack',min:0,max:1,step:.01,v:.9,desc:'Supersonic snap and the sharp front of the blast.',fmt:pct},
+  {id:'blast',label:'Blast',min:0,max:1,step:.01,v:.9,desc:'The main muzzle boom.',fmt:pct},
+  {id:'punch',label:'Punch',min:0,max:1,step:.01,v:.7,desc:'Low-end thump you feel more than hear.',fmt:pct},
+  {id:'mech',label:'Mechanics',min:0,max:1,step:.01,v:.45,desc:'Action cycling, hammer and body rattle.',fmt:pct},
+  {id:'casing',label:'Casing drop',min:0,max:1,step:.01,v:0,desc:'Brass bouncing on the floor after the shot.',fmt:v=>v?pct(v):'Off'},
+  {id:'tail',label:'Tail level',min:0,max:1,step:.01,v:.6,desc:'How loud the surroundings answer.',fmt:v=>v?pct(v):'Off'}
+];
+const SSHAPE=[
+  {id:'cal',label:'Caliber',min:0,max:1,step:.01,v:.55,desc:'Bigger rounds are lower, longer and heavier.',fmt:v=>(v<.34?'Small':v<.67?'Medium':'Large')+' · '+Math.round(v*100)},
+  {id:'dist',label:'Distance',min:0,max:1,step:.01,v:0,desc:'Far shots lose the crack and gain echo.',fmt:v=>Math.round(2+v*v*600)+' m'},
+  {id:'tailLen',label:'Tail length',min:.2,max:4,step:.05,v:1.6,desc:'How long the echo takes to die away.',fmt:v=>v.toFixed(2)+' s'},
+  {id:'vary',label:'Tone variation',min:0,max:1,step:.01,v:.35,desc:'How different each variation sounds.',fmt:pct}
+];
+const SP={env:'outdoor',sup:false};[...SLAYERS,...SSHAPE].forEach(c=>SP[c.id]=c.v);
+const ENV_TAIL={indoor:.7,outdoor:1.6,urban:2.4};
+
+function mixIn(out,buf,at,amp){for(let i=0;i<buf.length;i++){const k=at+i;if(k>=out.length)break;if(k>=0)out[k]+=buf[i]*amp}}
+function lp2(x,fcFn){let a1=0,a2=0;for(let i=0;i<x.length;i++){const a=1-Math.exp(-TAU*Math.min(20000,fcFn(i))/SR);a1+=a*(x[i]-a1);a2+=a*(a1-a2);x[i]=a2}return x}
+
+function shotIR(ctx,rng,env,T){
+  const len=Math.max(64,Math.floor(SR*T)),ir=ctx.createBuffer(2,len,SR);
+  for(let c=0;c<2;c++){
+    const d=ir.getChannelData(c),diff=env==='indoor'?1:env==='outdoor'?.35:.25;let a1=0,a2=0;
+    for(let i=0;i<len;i++){const u=i/SR,fc=env==='indoor'?1200+7000*Math.exp(-u*4/T):450+3500*Math.exp(-u*5/T),a=1-Math.exp(-TAU*fc/SR);
+      a1+=a*(rng()*2-1-a1);a2+=a*(a1-a2);const on=Math.min(1,u/(env==='indoor'?.004:.04));d[i]=a2*diff*Math.exp(-u*6.9/T)*on*3}
+    const grain=(at,amp,br)=>{const s=Math.floor(at*SR),g=Math.floor(.006*SR);let p=0;for(let i=0;i<g&&s+i<len;i++){p+=br*(rng()*2-1-p);d[s+i]+=p*amp*Math.exp(-i/(g/3))}};
+    if(env==='indoor'){for(let k=0;k<14;k++)grain(.002+rng()*.05,.5+rng()*.5,.6)}
+    else if(env==='outdoor'){for(let k=0;k<4;k++)grain(.06+rng()*Math.min(.5,T*.4),.35+rng()*.4,.25)}
+    else{const per=.16+rng()*.14;for(let k=1;k*per<T;k++)grain(k*per*(1+(rng()-.5)*.04)+(c?.007:0),Math.pow(.62,k),.3);for(let k=0;k<5;k++)grain(.01+rng()*.08,.4,.4)}
+  }
+  return ir;
+}
+
+function energyShot(out,t0,cal,S,rng,jit){
+  const dur=(.12+.18*cal)*jit(.15),m=Math.round(dur*SR),b=new Float32Array(m);
+  const f0=(3200-1800*cal)*jit(.1),f1=110+140*(1-cal);let ph=0,pm=0;
+  for(let i=0;i<m;i++){const t=i/SR,u=i/m,f=f1+(f0-f1)*Math.exp(-t/(dur*.25));pm+=f*1.5/SR;ph+=f/SR;
+    b[i]=Math.sin(TAU*ph+3*(1-u)*Math.sin(TAU*pm))*(1-Math.exp(-i/(.0005*SR)))*Math.pow(1-u,1.5)}
+  peakNorm(b);mixIn(out,b,t0,S.blast*.8);
+  if(S.crack>0){const c=new Float32Array(Math.round(.01*SR));let p=0;for(let i=0;i<c.length;i++){const w=rng()*2-1;c[i]=(w-p)*Math.exp(-i/(.0015*SR));p=w}peakNorm(c);mixIn(out,c,t0,S.crack*.6)}
+  if(S.punch>0){const tp=.06+.08*cal,mm=Math.round(tp*6*SR),s=new Float32Array(mm);let q=0;
+    for(let i=0;i<mm;i++){const t=i/SR;q+=(50+120*Math.exp(-t/.02))/SR;s[i]=Math.sin(TAU*q)*Math.exp(-t/tp)*(1-Math.exp(-i/(.001*SR)))}peakNorm(s);mixIn(out,s,t0,S.punch*.7)}
+}
+
+async function renderShot(key,len,sd){
+  const pre=SHOT[key],S=SP,rng=mulberry32(sd*104729+7),V=S.vary,noise=()=>rng()*2-1,jit=a=>1+(rng()*2-1)*a*V;
+  const n=Math.max(1,Math.round(len*SR)),out=new Float32Array(n);
+  const t0=Math.round(.012*SR),cal=Math.min(1,Math.max(0,S.cal*jit(.1))),sup=S.sup?1:0,dist=S.dist;
+  if(pre.kind==='energy')energyShot(out,t0,cal,S,rng,jit);
+  else{
+    const cr=S.crack*(1-.88*sup)*(1-.8*dist)*jit(.15);
+    if(cr>0){const nw=Math.max(4,Math.round((.0002+.0006*cal)*SR)),c=new Float32Array(Math.round(.008*SR));
+      for(let i=0;i<nw;i++)c[i]+=1-2*i/nw;
+      let p=0;for(let i=0;i<c.length;i++){const w=noise()*Math.exp(-i/(.0009*SR));c[i]+=(w-p)*.7;p=w}
+      peakNorm(c);mixIn(out,c,t0,cr)}
+    const bl=S.blast*(1-.55*sup)*jit(.12);
+    if(bl>0){const tau=(.01+.055*cal)*(1-.45*sup)*jit(.15),m=Math.round(tau*9*SR),b=new Float32Array(m);
+      for(let i=0;i<m;i++){const e=(1-Math.exp(-i/(.0003*SR)))*(Math.exp(-i/(tau*SR))+.25*Math.exp(-i/(tau*3.5*SR)));b[i]=noise()*e}
+      const fS=(12000-5000*cal)*(1-.8*sup)*(1-.6*dist),fE=(350+500*(1-cal))*(1-.5*sup);
+      lp2(b,i=>fE+(fS-fE)*Math.exp(-i/(tau*.5*SR)));
+      peakNorm(b);const dr=1.5+3*cal*(1-.5*sup),th=Math.tanh(dr);for(let i=0;i<m;i++)b[i]=Math.tanh(b[i]*dr)/th;
+      mixIn(out,b,t0,bl*.9)}
+    const pu=S.punch*(1-.55*sup)*(1-.5*dist)*jit(.12);
+    if(pu>0){const tp=(.02+.06*cal)*jit(.15),m=Math.round(tp*7*SR),b=new Float32Array(m),f0=170-60*cal,f1=(34+26*(1-cal))*jit(.06);let ph=0;
+      for(let i=0;i<m;i++){const t=i/SR,f=f1+(f0-f1)*Math.exp(-t/.014);ph+=f/SR;b[i]=Math.tanh(1.6*Math.sin(TAU*ph))*(1-Math.exp(-i/(.0006*SR)))*Math.exp(-t/tp)}
+      peakNorm(b);mixIn(out,b,t0,pu*.8)}
+  }
+  const Q={weight:cal,bright:.6,grit:.5,vary:V,fs:1.3-.6*cal,ds:(.35+1.3*.6)*(.8+.5*cal)};
+  const parts=buildParts(key+'-shot',Q),ts=t0/SR;
+  const me=S.mech*(1+.6*sup)*(1-.7*dist);
+  if(me>0){const E=makeEngine(n,rng,Q);
+    if(pre.mech==='auto'||pre.mech==='semi'){E.hit(ts+.004,parts.receiver,.7);E.hit(ts+(pre.mech==='auto'?.028:.034)*jit(.15),parts.bolt,1,1);E.rattle(ts+.04,parts.receiver,.35,3)}
+    else if(pre.mech==='hammer'){E.hit(ts-.008,parts.latch,.9,1);E.hit(ts+.002,parts.cyl,.5);E.rattle(ts+.01,parts.cyl,.2,2)}
+    else if(pre.mech==='energy'){E.hit(ts+.002,parts.receiver,.4);E.tone(ts+.05,.35,300,1600,.35,'sine')}
+    else{E.hit(ts+.002,parts.receiver,.6);E.rattle(ts+.01,parts.receiver,.3,3)}
+    peakNorm(E.out);mixIn(out,E.out,0,me*.45)}
+  const ca=S.casing*(1-.7*dist);
+  if(ca>0&&pre.kind!=='energy'){const E=makeEngine(n,rng,Q),part=key==='shotgun'?parts.shell:parts.brass;let tt=ts+.3+rng()*.15,a=1;
+    for(let k=0;k<4;k++){E.hit(tt,part,a,1);tt+=.05+rng()*.07*(1-k*.2);a*=.5}
+    peakNorm(E.out);mixIn(out,E.out,0,ca*.3)}
+  if(dist>0){const fc=2500+15500*Math.pow(1-dist,2);lp2(out,()=>fc)}
+  peakNorm(out);
+  const ctx=new OfflineAudioContext(2,n,SR);
+  const dry=ctx.createBuffer(1,n,SR);dry.getChannelData(0).set(out);
+  const src=ctx.createBufferSource();src.buffer=dry;
+  const comp=ctx.createDynamicsCompressor();comp.threshold.value=-14;comp.knee.value=6;comp.ratio.value=6;comp.attack.value=.0003;comp.release.value=.06;comp.connect(ctx.destination);
+  const dg=ctx.createGain();dg.gain.value=1-.7*dist;src.connect(dg);dg.connect(comp);
+  if(S.tail>0){const cv=ctx.createConvolver();cv.normalize=true;cv.buffer=shotIR(ctx,rng,S.env,S.tailLen);const wg=ctx.createGain();wg.gain.value=S.tail*(.25+.9*dist)*(1-.4*sup);src.connect(cv);cv.connect(wg);wg.connect(comp)}
+  src.start(0);
+  const buf=await ctx.startRendering();
+  const L=buf.getChannelData(0),R=buf.getChannelData(1);let pk=0;
+  for(let i=0;i<n;i++){const a=Math.max(Math.abs(L[i]),Math.abs(R[i]));if(a>pk)pk=a}
+  const g=pk>0?.891/pk:1,fade=Math.min(n,Math.floor(SR*.012));
+  for(let i=0;i<n;i++){const f=i>=n-fade?(n-i)/fade:1;L[i]*=g*f;R[i]*=g*f}
+  return {buf};
+}
+
+/* ---------- impact synthesis ---------- */
+const SURF={
+  flesh:{name:'Flesh',spec:'Soft tissue · wet',v:{snap:.45,body:.85,debris:.7,crunch:.3,wet:0.85,tear:0.6,ric:0}},
+  armor:{name:'Body Armor',spec:'Plate over flesh',v:{snap:.9,body:.85,debris:.15,crunch:.25,wet:0.15,tear:0.1,ric:0}},
+  wood:{name:'Wood',spec:'Tree trunk · planks',v:{snap:.75,body:.8,debris:.5,crunch:.6,wet:0,tear:0.4,ric:0}},
+  dirt:{name:'Dirt',spec:'Soil · mud · grass',v:{snap:.4,body:.75,debris:.9,crunch:.25,wet:0.15,tear:0.1,ric:0}},
+  rock:{name:'Rock',spec:'Stone · concrete',v:{snap:1,body:.6,debris:.7,crunch:.6,wet:0,tear:0,ric:.3}},
+  metal:{name:'Metal',spec:'Sheet steel · car',v:{snap:.95,body:1,debris:.2,crunch:.25,wet:0,tear:0,ric:.25}},
+  glass:{name:'Glass',spec:'Window pane',v:{snap:.9,body:.6,debris:1,crunch:.8,wet:0,tear:0,ric:0}},
+  water:{name:'Water',spec:'Puddle · lake',v:{snap:.45,body:.85,debris:.7,crunch:0,wet:0.6,tear:0,ric:0}}
+};
+const ILAYERS=[
+  {id:'snap',label:'Snap',min:0,max:1,step:.01,v:.45,desc:'The instant of contact.',fmt:pct},
+  {id:'body',label:'Body',min:0,max:1,step:.01,v:.85,desc:'The surface itself: meat thump, wood thunk, metal ring.',fmt:pct},
+  {id:'wet',label:'Wet',min:0,max:1,step:.01,v:.85,desc:'Squelch and liquid pops. Gore on flesh, mud on dirt.',fmt:v=>v?pct(v):'Off'},
+  {id:'tear',label:'Tear',min:0,max:1,step:.01,v:.6,desc:'Ripping fibers: torn flesh, splintering wood.',fmt:v=>v?pct(v):'Off'},
+  {id:'debris',label:'Debris',min:0,max:1,step:.01,v:.7,desc:'Blood spray, dirt spray, chips, shards or droplets.',fmt:v=>v?pct(v):'Off'},
+  {id:'crunch',label:'Crunch',min:0,max:1,step:.01,v:.3,desc:'Bone crack, splinters or fracture, by surface.',fmt:v=>v?pct(v):'Off'},
+  {id:'ric',label:'Ricochet',min:0,max:1,step:.01,v:0,desc:'A short zing as the bullet glances off.',fmt:v=>v?pct(v):'Off'},
+  {id:'tail',label:'Tail level',min:0,max:1,step:.01,v:.35,desc:'How loud the surroundings answer.',fmt:v=>v?pct(v):'Off'}
+];
+const ISHAPE=[
+  {id:'force',label:'Force',min:0,max:1,step:.01,v:.6,desc:'Round size and speed. More force is heavier and messier.',fmt:v=>(v<.34?'Light':v<.67?'Medium':'Heavy')+' · '+Math.round(v*100)},
+  {id:'dist',label:'Distance',min:0,max:1,step:.01,v:0,desc:'Far impacts lose detail and gain echo.',fmt:v=>Math.round(1+v*v*300)+' m'},
+  {id:'tailLen',label:'Tail length',min:.2,max:3,step:.05,v:1,desc:'How long the echo takes to die away.',fmt:v=>v.toFixed(2)+' s'},
+  {id:'vary',label:'Tone variation',min:0,max:1,step:.01,v:.4,desc:'How different each variation sounds.',fmt:pct}
+];
+const IP={env:'outdoor',head:false};[...ILAYERS,...ISHAPE].forEach(c=>IP[c.id]=c.v);
+const IENV_TAIL={indoor:.5,outdoor:1,urban:1.6};
+
+async function renderImpact(key,len,sd){
+  const S=IP,rng=mulberry32(sd*15485863+3),V=S.vary,noise=()=>rng()*2-1,jit=a=>1+(rng()*2-1)*a*V;
+  const n=Math.max(1,Math.round(len*SR)),out=new Float32Array(n),T=.005;
+  const fo=Math.min(1,Math.max(0,S.force*jit(.12))),fsc=1.2-.5*fo,dist=S.dist;
+  const pr=mulberry32(hashStr('imp-'+key));
+  const add=(buf,at,amp)=>mixIn(out,buf,Math.round(at*SR),amp);
+  const burst=ms=>{const L=Math.max(3,Math.round(ms/1000*SR)),e=new Float32Array(L*5);for(let i=0;i<e.length;i++)e[i]=noise()*Math.exp(-i/L);return e};
+  const fixedModes=(c,sp,k,d)=>{const a=[],cc=c*fsc;for(let i=0;i<k;i++){const f=Math.min(15000,Math.max(60,cc*Math.exp(randn(pr)*sp)));a.push({f:f*(1+randn(rng)*.03*V),d:d*(.5+pr())*Math.min(1.4,Math.pow(cc/f,.5)),a:.3+pr()*.7})}return a};
+  const freeModes=(c,sp,k,d)=>{const a=[];for(let i=0;i<k;i++)a.push({f:Math.min(15000,c*Math.exp(randn(rng)*sp)),d:d*(.5+rng()),a:.3+rng()*.7});return a};
+  const snap=(bright,amp)=>{if(amp<=0)return;const e=burst(.2+.6*(1-bright)),c=new Float32Array(e.length);for(let i=1;i<e.length;i++)c[i]=e[i]-e[i-1];
+    lp2(c,()=>2500+bright*15000*(1-.7*dist));peakNorm(c);add(c,T,amp*jit(.2))};
+  const ring=(c,sp,k,d,amp,exMs)=>{if(amp<=0)return;const md=fixedModes(c,sp,k,d);let mx=0;for(const m of md)mx=Math.max(mx,m.d);add(peakNorm(resonate(burst(exMs||1),md,mx*7)),T,amp*jit(.2))};
+  const thud=(f,tau,amp)=>{if(amp<=0)return;f*=fsc;tau*=(.8+.6*fo)*jit(.15);const m=Math.round(tau*7*SR),x=new Float32Array(m),s=new Float32Array(m);let ph=0;
+    for(let i=0;i<m;i++){const t=i/SR,e=(1-Math.exp(-i/(.0008*SR)))*Math.exp(-t/tau);x[i]=noise()*e;ph+=f*(1+1.2*Math.exp(-t/.01))/SR;s[i]=Math.sin(TAU*ph)*e}
+    lp2(x,()=>f*3);peakNorm(x);peakNorm(s);add(x,T,amp*.6);add(s,T,amp*.5)};
+  const grains=(count,dur,fn)=>{for(let i=0;i<count;i++){const u=-Math.log(1-rng()*.95)/3;fn(T+.006+u*dur,Math.exp(-u*1.5))}};
+  const soft=(t,amp,fc)=>{const L=Math.round((.002+rng()*.006)*SR),g=new Float32Array(L);for(let i=0;i<L;i++)g[i]=noise()*Math.sin(Math.PI*i/L);lp2(g,()=>fc);peakNorm(g);add(g,t,amp)};
+  const chip=(t,amp,c,d)=>{add(peakNorm(resonate(burst(.12),freeModes(c*fsc,.35,5,d||.003),.03)),t,amp)};
+  const crackle=(count,dur,fLo,fHi,amp)=>{if(amp<=0)return;let t=T+.001;for(let i=0;i<count;i++){t+=dur/count*(.3+rng()*1.4);
+    add(peakNorm(resonate(burst(.08),[{f:fLo*Math.pow(fHi/fLo,rng()),d:.0012,a:1}],.01)),t,amp*(.4+.6*rng())*(1-.6*i/count))}};
+  const hiss=(dur,f0,amp)=>{if(amp<=0)return;const m=Math.round(dur*SR),x=new Float32Array(m);let low=0,band=0;const F=2*Math.sin(Math.PI*Math.min(5000,f0)/SR);
+    for(let i=0;i<m;i++){const w=noise()*Math.min(1,i/(SR*.005))*Math.exp(-i/(m/3));low+=F*band;const hi=w-low-.5*band;band+=F*hi;x[i]=band}peakNorm(x);add(x,T+.004,amp)};
+  const squelch=amp=>{if(amp<=0)return;const tau=(.03+.035*fo)*jit(.2),m=Math.round(tau*6*SR),x=new Float32Array(m);let low=0,band=0,fc=700,tgt=700,rate=35+rng()*35;
+    for(let i=0;i<m;i++){if(i%Math.round(SR*(.005+rng()*.001))===0)tgt=(350+rng()*1100)*fsc;fc+=(tgt-fc)*.004;const F=2*Math.sin(Math.PI*fc/SR),t=i/SR;
+      const w=noise()*(1-Math.exp(-i/(.002*SR)))*Math.exp(-t/tau)*(.6+.4*Math.sin(TAU*rate*t));low+=F*band;const hi=w-low-.4*band;band+=F*hi;x[i]=band}
+    peakNorm(x);add(x,T+.002,amp)};
+  const bubble=(t,amp)=>{const f0=(500+rng()*1600)*fsc,tau=.008+rng()*.02,m=Math.round(tau*6*SR),x=new Float32Array(m);let ph=0;
+    for(let i=0;i<m;i++){const tt=i/SR;ph+=f0*(1+tt*9)/SR;x[i]=Math.sin(TAU*ph)*Math.exp(-tt/tau)*Math.min(1,i/(SR*.0008))}add(x,t,amp)};
+  // Ricochet: short airy zing. Narrow-band noise that tracks a Doppler-style pitch drop, fluttering as the bullet tumbles.
+  const ricochet=amp=>{if(amp<=0)return;amp=Math.pow(amp,1.6);
+    const d=(.16+.22*rng())*jit(.2),m=Math.round(d*SR),x=new Float32Array(m);
+    const f0=(1900+rng()*1500),endR=.5+rng()*.2,tauP=.04+rng()*.05,tr=35+rng()*55,q=.07;
+    let low=0,band=0,ph=0,tph=rng(),rate=tr;
+    for(let i=0;i<m;i++){const t=i/SR,u=i/m,f=f0*(endR+(1-endR)*Math.exp(-t/tauP));
+      if(i%512===0)rate=tr*(.85+.3*rng());tph+=rate/SR;
+      const F=2*Math.sin(Math.PI*f/SR);low+=F*band;const hi=noise()-low-q*band;band+=F*hi;
+      ph+=f/SR;const tone=Math.sin(TAU*ph);
+      const flutter=1-.55*(.5+.5*Math.sin(TAU*tph));
+      const env=Math.min(1,t/.006)*Math.pow(1-u,2.2);
+      x[i]=(band*.08+tone*.25)*flutter*env}
+    lp2(x,()=>6000);peakNorm(x);add(x,T+.006,amp*.4)};
+  const micro=(t,amp,fLo,fHi)=>{const f0=fLo*Math.pow(fHi/fLo,rng())*fsc,tau=.0015+rng()*.004,m=Math.round(tau*6*SR),x=new Float32Array(m);let ph=0;
+    for(let i=0;i<m;i++){const tt=i/SR;ph+=f0*(1+tt*60)/SR;x[i]=Math.sin(TAU*ph)*Math.exp(-tt/tau)*Math.min(1,i/8)}add(x,t,amp)};
+  const bandNoise=(ms,tauMs,fc,q,amp,at,gurgle)=>{const m=Math.round(ms/1000*SR),x=new Float32Array(m);let low=0,band=0,am=1,tg=1;const F=2*Math.sin(Math.PI*Math.min(5000,fc)/SR),st=Math.round(SR*.006);
+    for(let i=0;i<m;i++){if(gurgle&&i%st===0)tg=.15+rng();am+=(tg-am)*(gurgle?.02:1);const w=noise()*Math.min(1,i/(SR*.0005))*Math.exp(-i/(tauMs/1000*SR))*am;low+=F*band;const hi=w-low-q*band;band+=F*hi;x[i]=band}
+    peakNorm(x);add(x,at,amp)};
+  const slap=(amp,fc)=>{if(amp<=0)return;bandNoise(40,5,fc*fsc,.9,amp*jit(.2),T)};
+  const splat=(amp,k)=>{if(amp<=0)return;const cnt=Math.round((30+50*fo)*k),dur=.03+.03*fo;
+    for(let i=0;i<cnt;i++){const u=Math.pow(rng(),1.8);micro(T+.002+u*dur,amp*.3*(.3+.7*rng())*(1-.5*u),500,3500)}
+    const m=Math.round(.12*SR),x=new Float32Array(m);for(let i=0;i<m;i++)x[i]=noise()*Math.min(1,i/(SR*.002))*Math.exp(-i/(.03*SR));lp2(x,()=>1400*fsc);peakNorm(x);add(x,T+.002,amp*.35)};
+  const rip=(amp,dur,fc)=>{if(amp<=0)return;dur*=jit(.2);const m=Math.round(dur*SR),x=new Float32Array(m),step=Math.round(SR*.004);let env=.5,tg=.5,low=0,band=0;
+    for(let i=0;i<m;i++){if(i%step===0)tg=rng()<.25?.1:.4+rng()*.6;env+=(tg-env)*.008;const u=i/m,shape=Math.min(1,u/.08)*Math.pow(1-u,.8);
+      let v=noise()*.12;if(rng()<(1500+4000*env)/SR)v+=(rng()<.5?-1:1)*(.4+rng());
+      const F=2*Math.sin(Math.PI*Math.min(5000,fc*fsc*(.8+.4*env))/SR),w=v*env*shape;low+=F*band;const hi=w-low-.5*band;band+=F*hi;x[i]=band*.7+w*.3}
+    peakNorm(x);add(x,T+.005,amp*.6);
+    const c=Math.round(dur*120);for(let k=0;k<c;k++)micro(T+.005+rng()*dur,amp*.15*rng(),700,3000)};
+  const blood=amp=>{if(amp<=0)return;bandNoise(250,50,3200,1.2,amp*.3,T+.008,true);
+    const drops=Math.round(10+20*fo);for(let k=0;k<drops;k++){const t=T+.1+Math.pow(rng(),1.5)*.3;micro(t,amp*.06*(.3+.7*rng()),2000,5000);soft(t,amp*.1*(.3+.7*rng()),1800+rng()*2500)}};
+  const A={snap:S.snap,body:S.body,wet:S.wet*(1-.5*dist),tear:S.tear*(1-.6*dist),debris:S.debris*(1-.5*dist),crunch:S.crunch*(1-.6*dist),ric:S.ric};
+  const hs=S.head;
+  switch(key){
+    case'flesh':snap(hs?.8:.4,A.snap*(hs?.8:.55));slap(A.body*.7,hs?2000:1300);thud(hs?150:90,hs?.02:.035,A.body*(hs?.7:1));
+      if(hs)ring(700,.4,8,.012,A.body*.6,.6);
+      splat(A.wet,hs?1.3:1);squelch(A.wet*.35);rip(A.tear*(hs?1.2:1),.09+.08*fo,1500);
+      crackle(Math.round((hs?16:8)+10*fo),hs?.03:.025,hs?900:800,hs?4000:2800,A.crunch*(hs?1.1:.6));
+      blood(A.debris*(hs?1.3:1));break;
+    case'armor':if(hs){snap(1,A.snap);ring(2900,.4,16,.035,A.body*.9,.25);thud(170,.018,A.body*.35);crackle(4,.015,3000,7000,A.crunch*.3);ricochet(A.ric*.5);break}
+      snap(1,A.snap*.9);ring(1600,.6,18,.05,A.body*.7,.5);thud(110,.03,A.body*.8);squelch(A.body*.2);
+      crackle(Math.round(4+6*fo),.02,2000,6000,A.crunch*.45);if(A.debris>0)grains(6,.2,(t,w)=>chip(t,A.debris*.25*w,4000));ricochet(A.ric*.5);break;
+    case'wood':snap(.7,A.snap*.7);ring(650,.5,10,.022,A.body*.8,1.5);thud(180,.02,A.body*.5);crackle(Math.round(18+20*fo),.06,1800,6000,A.crunch*.55);
+      if(A.debris>0)grains(Math.round(8+14*fo),.35,(t,w)=>chip(t,A.debris*.3*w,2600,.004));break;
+    case'dirt':snap(.45,A.snap*.5);thud(80,.035,A.body);
+      if(A.debris>0){grains(Math.round(25+45*fo),.45,(t,w)=>soft(t,A.debris*.3*w,1200+rng()*1800));hiss(.25,3000,A.debris*.15)}
+      if(A.crunch>0)grains(Math.round(4+6*fo),.3,(t,w)=>chip(t,A.crunch*.35*w,3500));break;
+    case'rock':snap(1,A.snap);ring(3000,.6,16,.006,A.body*.6,.5);thud(140,.015,A.body*.5);crackle(Math.round(10+10*fo),.02,2500,8000,A.crunch*.6);
+      if(A.debris>0){grains(Math.round(12+25*fo),.4,(t,w)=>chip(t,A.debris*.3*w,4500));hiss(.3,4000,A.debris*.15)}ricochet(A.ric*.5);break;
+    case'metal':snap(1,A.snap*.9);ring(1400,.75,24,.14,A.body*.8,.4);thud(160,.012,A.body*.3);
+      if(A.crunch>0)grains(Math.round(3+4*fo),.15,(t,w)=>chip(t,A.crunch*.3*w,3000,.01));if(A.debris>0)grains(5,.3,(t,w)=>chip(t,A.debris*.2*w,5000));ricochet(A.ric*.5);break;
+    case'glass':snap(1,A.snap*.8);ring(4200,.45,14,.03,A.body*.5,.3);crackle(15,.015,3000,9000,A.crunch*.6);
+      if(A.debris>0)grains(Math.round(14+22*fo),.6,(t,w)=>{add(peakNorm(resonate(burst(.1),freeModes(5500,.45,5,.008+rng()*.012),.12)),t,A.debris*.22*w)});break;
+    case'water':{snap(.5,A.snap*.4);
+      if(A.body>0){const tau=(.05+.04*fo)*jit(.2),m=Math.round(tau*6*SR),x=new Float32Array(m);for(let i=0;i<m;i++)x[i]=noise()*(1-Math.exp(-i/(.001*SR)))*Math.exp(-i/(tau*SR));
+        lp2(x,i=>1200+5000*Math.exp(-i/(tau*SR)));peakNorm(x);add(x,T,A.body*.8);
+        const pm=Math.round(.12*SR),p=new Float32Array(pm);let ph=0;for(let i=0;i<pm;i++){const t=i/SR;ph+=(250+400*Math.min(1,t/.04))*fsc/SR;p[i]=Math.sin(TAU*ph)*Math.exp(-t/.03)*Math.min(1,t/.002)}add(p,T+.004,A.body*.45)}
+      if(A.debris>0){grains(Math.round(8+14*fo),.5,(t,w)=>bubble(t,A.debris*.35*w));grains(Math.round(10+20*fo),.4,(t,w)=>soft(t,A.debris*.2*w,3000+rng()*3000))}break}
+  }
+  if(key!=='flesh'){const TF={armor:1800,wood:2600,dirt:1100,rock:3500,metal:3000,glass:4500,water:1200}[key];
+    if(key==='armor'&&!hs)blood(A.debris*.4);
+    splat(A.wet*.8,key==='dirt'?.8:.6);rip(A.tear*.7,.08+.06*fo,TF)}
+  if(dist>0){const fc=2500+15500*Math.pow(1-dist,2);lp2(out,()=>fc)}
+  peakNorm(out);
+  const ctx=new OfflineAudioContext(2,n,SR);
+  const dry=ctx.createBuffer(1,n,SR);dry.getChannelData(0).set(out);
+  const src=ctx.createBufferSource();src.buffer=dry;
+  const comp=ctx.createDynamicsCompressor();comp.threshold.value=-14;comp.knee.value=6;comp.ratio.value=4;comp.attack.value=.0005;comp.release.value=.06;comp.connect(ctx.destination);
+  const dg=ctx.createGain();dg.gain.value=1-.7*dist;src.connect(dg);dg.connect(comp);
+  if(S.tail>0){const cv=ctx.createConvolver();cv.normalize=true;cv.buffer=shotIR(ctx,rng,S.env,S.tailLen);const wg=ctx.createGain();wg.gain.value=S.tail*(.2+.8*dist);src.connect(cv);cv.connect(wg);wg.connect(comp)}
+  src.start(0);
+  const buf=await ctx.startRendering();
+  const L=buf.getChannelData(0),R=buf.getChannelData(1);let pk=0;
+  for(let i=0;i<n;i++){const a=Math.max(Math.abs(L[i]),Math.abs(R[i]));if(a>pk)pk=a}
+  const g=pk>0?.891/pk:1,fade=Math.min(n,Math.floor(SR*.012));
+  for(let i=0;i<n;i++){const f=i>=n-fade?(n-i)/fade:1;L[i]*=g*f;R[i]*=g*f}
+  return {buf};
+}
+
+/* ---------- WAV + ZIP ---------- */
+function wav(buf){
+  const ch=buf.numberOfChannels,n=buf.length,sr=buf.sampleRate,bytes=n*ch*2;
+  const dv=new DataView(new ArrayBuffer(44+bytes));
+  const w=(o,s)=>{for(let i=0;i<s.length;i++)dv.setUint8(o+i,s.charCodeAt(i))};
+  w(0,'RIFF');dv.setUint32(4,36+bytes,true);w(8,'WAVE');w(12,'fmt ');dv.setUint32(16,16,true);dv.setUint16(20,1,true);dv.setUint16(22,ch,true);
+  dv.setUint32(24,sr,true);dv.setUint32(28,sr*ch*2,true);dv.setUint16(32,ch*2,true);dv.setUint16(34,16,true);w(36,'data');dv.setUint32(40,bytes,true);
+  const chans=[];for(let c=0;c<ch;c++)chans.push(buf.getChannelData(c));
+  let o=44;for(let i=0;i<n;i++)for(let c=0;c<ch;c++){const s=Math.max(-1,Math.min(1,chans[c][i]));dv.setInt16(o,s<0?s*32768:s*32767,true);o+=2}
+  return new Uint8Array(dv.buffer);
+}
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRC[(c^u[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+function zip(files){
+  const enc=new TextEncoder(),parts=[],cen=[];let off=0,cenSize=0;
+  for(const f of files){
+    const nm=enc.encode(f.name),crc=crc32(f.data),sz=f.data.length;
+    const lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(12,33,true);lh.setUint32(14,crc,true);lh.setUint32(18,sz,true);lh.setUint32(22,sz,true);lh.setUint16(26,nm.length,true);
+    parts.push(lh.buffer,nm,f.data);
+    const ch=new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true);ch.setUint16(4,20,true);ch.setUint16(6,20,true);ch.setUint16(14,33,true);ch.setUint32(16,crc,true);ch.setUint32(20,sz,true);ch.setUint32(24,sz,true);ch.setUint16(28,nm.length,true);ch.setUint32(42,off,true);
+    cen.push(ch.buffer,nm);cenSize+=46+nm.length;off+=30+nm.length+sz;
+  }
+  const e=new DataView(new ArrayBuffer(22));
+  e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cenSize,true);e.setUint32(16,off,true);
+  return new Blob([...parts,...cen,e.buffer],{type:'application/zip'});
+}
+
+/* ---------- downloads ---------- */
+const dlP=window.claude&&window.claude.use?window.claude.use('downloads'):null;
+const HOSTED=!dlP; // self-hosted: the browser saves files directly, so single exports skip the zip
+async function offer(filename,blob){
+  if(!dlP){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();a.remove();return}
+  const dl=await dlP;
+  if(!dl){toast("Saving files isn't available in this view.");return}
+  try{await dl.save({filename,data:blob});toast('Saved '+filename)}
+  catch(e){const c=e&&e.code;toast(c==='declined'?'Save cancelled.':c==='rate_limited'?'A save prompt is already open.':"Couldn't save the file here.")}
+}
+
+/* ---------- UI ---------- */
+const $=id=>document.getElementById(id);
+const cv=$('scope'),g2=cv.getContext('2d');
+let cur=null,actx=null,src=null,playT0=0,raf=0,peaks=null,token=0;
+const pad4=n=>String(n%10000).padStart(4,'0');
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2600)}
+function ensureCtx(){if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume()}
+
+function buildPlatforms(){
+  const el=$('platforms');el.innerHTML='';
+  const list=mode==='reload'?PRESETS:mode==='shot'?SHOT:SURF,curK=mode==='reload'?presetKey:mode==='shot'?shotKey:impKey;
+  Object.entries(list).forEach(([k,p])=>{
+    const b=document.createElement('button');b.className='plat';b.id='plat-'+k;b.setAttribute('aria-pressed',k===curK);
+    b.innerHTML=mode==='reload'?`<b>${p.name}</b><small>${p.ev.length} steps · ${defLen(p).toFixed(2)} s</small>`:`<b>${p.name}</b><small>${p.spec}</small>`;
+    b.onclick=()=>{ensureCtx();
+      if(mode==='reload'){loadPreset(k);setSlider('weight',p.weight);$('clipLen').value=clipLen.toFixed(2);buildChips()}
+      else if(mode==='shot'){shotKey=k;Object.entries(p.v).forEach(([id,v])=>setSlider(id,v,'x'))}
+      else{impKey=k;Object.entries(p.v).forEach(([id,v])=>setSlider(id,v,'i'));headUI()}
+      document.querySelectorAll('.plat').forEach(x=>x.setAttribute('aria-pressed',x===b));update(true)};
+    el.appendChild(b);
+  });
+}
+const sortSteps=()=>steps.sort((a,b)=>a.t-b.t);
+function buildChips(){
+  const el=$('chips');el.innerHTML='';
+  steps.forEach(st=>{
+    const row=document.createElement('div');row.className='step'+(st.on?'':' off')+(st.t>=clipLen?' past':'');
+    row.innerHTML=`<button class="tog" aria-pressed="${st.on}" aria-label="Mute or unmute ${LABELS[st.type]}"><span class="dot"></span></button><span class="nm">${LABELS[st.type]}</span><span class="tin"><input type="number" id="t-${st.id}" min="0" max="10" step="0.01" value="${st.t.toFixed(2)}" aria-label="${LABELS[st.type]} time in seconds">s</span><button class="del" aria-label="Remove ${LABELS[st.type]}" title="Remove step">✕</button>`;
+    row.querySelector('.tog').onclick=()=>{ensureCtx();st.on=!st.on;buildChips();update(true)};
+    row.querySelector('.del').onclick=()=>{ensureCtx();steps=steps.filter(x=>x!==st);buildChips();update(true)};
+    const inp=row.querySelector('input');
+    inp.addEventListener('input',()=>{const v=parseFloat(inp.value);if(isFinite(v)&&v>=0){st.t=v;draw(-1);update(false)}});
+    inp.addEventListener('change',()=>{ensureCtx();const v=parseFloat(inp.value);st.t=isFinite(v)?Math.max(0,v):st.t;sortSteps();buildChips();const n=$('t-'+st.id);if(n)n.focus();update(true)});
+    el.appendChild(row);
+  });
+}
+const grp=pre=>pre==='x'?{list:[...SLAYERS,...SSHAPE],st:SP}:pre==='i'?{list:[...ILAYERS,...ISHAPE],st:IP}:{list:CTRL,st:P};
+function setSlider(id,v,pre='s'){grp(pre).st[id]=v;const inp=$(pre+'-'+id);inp.value=v;paintSlider(inp)}
+function paintSlider(inp){const[pre,id]=inp.id.split('-');const c=grp(pre).list.find(c=>c.id===id);const p=(inp.value-c.min)/(c.max-c.min)*100;inp.style.setProperty('--p',p+'%');$(pre+'o-'+id).textContent=c.fmt(+inp.value)}
+function buildSliders(elId,pre,list){
+  const el=$(elId),st=grp(pre).st;
+  list.forEach(c=>{
+    const d=document.createElement('div');d.className='sl';
+    d.innerHTML=`<div class="top"><label for="${pre}-${c.id}">${c.label}</label><output id="${pre}o-${c.id}"></output></div><input type="range" id="${pre}-${c.id}" min="${c.min}" max="${c.max}" step="${c.step}" value="${st[c.id]}"><p>${c.desc}</p>`;
+    el.appendChild(d);
+    const inp=d.querySelector('input');paintSlider(inp);
+    inp.addEventListener('input',()=>{st[c.id]=+inp.value;paintSlider(inp);update(false)});
+    inp.addEventListener('change',()=>{ensureCtx();if($('autoplay').checked)update(true)});
+  });
+}
+
+function curSeed(){return mode==='reload'?seed:mode==='shot'?shotSeed:impSeed}
+function setSeed(v){if(mode==='reload')seed=v;else if(mode==='shot')shotSeed=v;else impSeed=v}
+function curLen(){return mode==='reload'?clipLen:mode==='shot'?shotLen:impLen}
+function fitAuto(){
+  if(mode==='shot'&&shotAuto){shotLen=Math.round((Math.max(SP.tail>0?SP.tailLen*.95:.35,SP.casing>0?1.05:.35)+.05)*100)/100;$('shotLen').value=shotLen.toFixed(2)}
+  if(mode==='impact'&&impAuto){impLen=Math.round((Math.max(IP.tail>0?IP.tailLen*.9:.25,IP.ric>0?.75:.25,IP.debris>0?(impKey==='glass'?.9:.7):.25,impKey==='metal'&&IP.body>0?.9:.25)+.05)*100)/100;$('impLen').value=impLen.toFixed(2)}
+}
+function renderMode(sd){return mode==='reload'?renderTake(presetKey,steps,clipLen,sd):mode==='shot'?renderShot(shotKey,shotLen,sd):renderImpact(impKey,impLen,sd)}
+let deb=0;
+function update(andPlay){
+  clearTimeout(deb);
+  deb=setTimeout(async()=>{
+    const my=++token;
+    fitAuto();
+    const r=await renderMode(curSeed());
+    if(my!==token)return;
+    cur=r;peaks=null;$('len').textContent=curLen().toFixed(2)+' s';$('take').textContent=pad4(curSeed());
+    draw(-1);
+    if(andPlay&&$('autoplay').checked)play();
+  },andPlay?0:90);
+}
+function play(){
+  if(!cur)return;ensureCtx();
+  if(src){try{src.stop()}catch(e){}}
+  src=actx.createBufferSource();src.buffer=cur.buf;src.connect(actx.destination);src.start();playT0=actx.currentTime;
+  cancelAnimationFrame(raf);
+  const tick=()=>{const p=actx.currentTime-playT0;if(p>cur.buf.duration){draw(-1);return}draw(p);raf=requestAnimationFrame(tick)};tick();
+}
+
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+function draw(ph){
+  const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);peaks=null}
+  g2.setTransform(dpr,0,0,dpr,0,0);g2.clearRect(0,0,w,h);
+  if(!cur)return;
+  const top=40,bot=h-20,mid=(top+bot)/2,amp=(bot-top)/2,dur=cur.buf.duration,xs=t=>t/dur*w;
+  // grid
+  g2.font='10px "IBM Plex Mono", ui-monospace, monospace';g2.textBaseline='bottom';
+  for(let t=0;t<dur;t+=.1){const x=Math.round(xs(t))+.5,major=Math.abs(t*2-Math.round(t*2))<1e-6;
+    g2.strokeStyle=major?css('--line'):'rgba(45,52,59,.45)';g2.beginPath();g2.moveTo(x,top);g2.lineTo(x,bot);g2.stroke();
+    if(major){g2.fillStyle=css('--faint');g2.fillText(t.toFixed(1)+' s',x+3,h-4)}}
+  g2.strokeStyle=css('--line');g2.beginPath();g2.moveTo(0,mid+.5);g2.lineTo(w,mid+.5);g2.stroke();
+  // peaks
+  if(!peaks){const L=cur.buf.getChannelData(0),R=cur.buf.getChannelData(1),n=L.length;peaks=new Float32Array(Math.ceil(w)*2);
+    for(let x=0;x<w;x++){let mn=0,mx=0;const a=Math.floor(x/w*n),b=Math.floor((x+1)/w*n);for(let i=a;i<b;i++){const s=(L[i]+R[i])*.5;if(s<mn)mn=s;if(s>mx)mx=s}peaks[x*2]=mn;peaks[x*2+1]=mx}}
+  const brass=css('--brass'),dim=css('--brass-dim');
+  for(let x=0;x<w;x++){const mn=peaks[x*2],mx=peaks[x*2+1];g2.fillStyle=ph>=0&&xs(ph)>x?brass:(ph>=0?dim:brass);g2.fillRect(x,mid-mx*amp,1,Math.max(1,(mx-mn)*amp))}
+  // markers (from the live step list so dragging is immediate)
+  let lastX=[-999,-999];
+  if(mode==='reload')[...steps].sort((a,b)=>a.t-b.t).forEach(st=>{
+    if(st.t>=dur)return;
+    const on=st.on,active=drag&&drag.s===st,x=Math.round(xs(st.t))+.5;
+    g2.strokeStyle=active?css('--brass-hi'):on?'rgba(226,189,103,.5)':'rgba(93,101,108,.55)';g2.setLineDash(active?[]:[2,3]);
+    g2.beginPath();g2.moveTo(x,top-2);g2.lineTo(x,bot);g2.stroke();g2.setLineDash([]);
+    g2.fillStyle=active?css('--brass-hi'):on?css('--brass'):css('--off');
+    g2.beginPath();g2.moveTo(x-5,top-8);g2.lineTo(x+5,top-8);g2.lineTo(x,top-1);g2.closePath();g2.fill();
+    const label=active?LABELS[st.type]+'  '+st.t.toFixed(3)+' s':LABELS[st.type];const tw=g2.measureText(label).width;
+    const row=(x-lastX[0]>tw+10)?0:(x-lastX[1]>tw+10?1:0);lastX[row]=x;
+    g2.fillStyle=active?css('--brass-hi'):on?css('--text'):css('--faint');g2.fillText(label,Math.min(x+3,w-tw-2),row?26:13);
+  });
+  if(ph>=0){const x=xs(ph);g2.fillStyle=css('--text');g2.fillRect(x,top-4,1.5,bot-top+4)}
+}
+
+/* export */
+const slug=()=>(mode==='reload'?PRESETS[presetKey]:mode==='shot'?SHOT[shotKey]:SURF[impKey]).name.toLowerCase().replace(/\s+/g,'-');
+const fname=sd=>mode==='reload'?`reload-${slug()}-take${pad4(sd)}`:`${mode}-${slug()}${mode==='impact'&&IP.head&&(impKey==='flesh'||impKey==='armor')?(impKey==='armor'?'-helmet':'-head'):''}-v${pad4(sd)}`;
+async function exportOne(){if(!cur)return;const name=fname(curSeed());
+  if(HOSTED)await offer(name+'.wav',new Blob([wav(cur.buf)],{type:'audio/wav'}));else await offer(name+'.zip',zip([{name:name+'.wav',data:wav(cur.buf)}]))}
+async function exportSix(btn){
+  const label=btn.textContent;btn.disabled=true;btn.textContent='Rendering…';const files=[],m=mode,base=curSeed();
+  for(let k=0;k<6;k++){const r=await renderMode(base+k);files.push({name:fname(base+k)+'.wav',data:wav(r.buf)})}
+  btn.disabled=false;btn.textContent=label;
+  await offer(`${m}-${slug()}-6${m==='reload'?'takes':'variations'}.zip`,zip(files));
+}
+['exp1','xexp1','iexp1'].forEach(id=>$(id).onclick=exportOne);
+['exp6','xexp6','iexp6'].forEach(id=>$(id).onclick=()=>exportSix($(id)));
+
+$('play').onclick=()=>{ensureCtx();play()};
+let drag=null;
+function markerAt(x){if(mode!=='reload')return null;const w=cv.clientWidth;let best=null,bd=10;steps.forEach(st=>{if(st.t>=clipLen)return;const d=Math.abs(st.t/clipLen*w-x);if(d<bd){bd=d;best=st}});return best}
+function xToT(x,fine){const t=Math.min(clipLen-.01,Math.max(0,x/cv.clientWidth*clipLen));const q=fine?.001:.005;return Math.round(t/q)*q}
+cv.addEventListener('pointerdown',e=>{ensureCtx();const st=markerAt(e.offsetX);
+  if(st){drag={s:st,moved:false};cv.setPointerCapture(e.pointerId);draw(-1)}else play()});
+cv.addEventListener('pointermove',e=>{
+  if(!drag){cv.style.cursor=markerAt(e.offsetX)?'ew-resize':'pointer';return}
+  drag.s.t=xToT(e.offsetX,e.shiftKey);drag.moved=true;const n=$('t-'+drag.s.id);if(n)n.value=drag.s.t.toFixed(3);draw(-1);update(false)});
+const endDrag=()=>{if(!drag)return;const moved=drag.moved;drag=null;sortSteps();buildChips();if(moved)update(true);else draw(-1)};
+cv.addEventListener('pointerup',endDrag);cv.addEventListener('pointercancel',endDrag);
+
+$('clipLen').addEventListener('change',()=>{ensureCtx();let v=parseFloat($('clipLen').value);if(!isFinite(v))v=clipLen;v=Math.min(10,Math.max(.3,v));
+  if($('scaleSteps').checked&&clipLen>0){const k=v/clipLen;steps.forEach(st=>st.t=Math.round(st.t*k*1000)/1000)}
+  clipLen=v;$('clipLen').value=v.toFixed(2);buildChips();update(true)});
+const addSel=$('addType');Object.entries(LABELS).forEach(([k,l])=>{const o=document.createElement('option');o.value=k;o.textContent=l;addSel.appendChild(o)});
+$('addStep').onclick=()=>{ensureCtx();const last=steps.length?Math.max(...steps.map(x=>x.t)):0;
+  const t=Math.min(Math.max(0,clipLen-.3),steps.length?last+.15:0);steps.push({id:++stepId,type:addSel.value,t:Math.round(t*100)/100,on:true});sortSteps();buildChips();update(true)};
+$('vary').onclick=()=>{ensureCtx();setSeed((curSeed()*16807+11)%9973+1);update(true)};
+$('surprise').onclick=()=>{ensureCtx();const r=Math.random;
+  if(mode==='impact'){['snap','body','force'].forEach(id=>setSlider(id,+(.3+r()*.7).toFixed(2),'i'));['debris','crunch','wet','tear'].forEach(id=>setSlider(id,+(r()).toFixed(2),'i'));
+    setSlider('ric',['rock','metal','armor'].includes(impKey)&&r()<.5?+(r()).toFixed(2):0,'i');setSlider('tail',+(r()*.7).toFixed(2),'i');setSlider('dist',+(r()*r()).toFixed(2),'i');
+    setIEnv(['indoor','outdoor','urban'][Math.floor(r()*3)]);impSeed=Math.floor(r()*9999)+1;update(true);return}
+  if(mode==='shot'){['crack','blast','punch','mech','cal'].forEach(id=>setSlider(id,+(.2+r()*.8).toFixed(2),'x'));setSlider('casing',r()<.4?+(r()).toFixed(2):0,'x');
+    setSlider('tail',+(r()).toFixed(2),'x');setSlider('dist',+(r()*r()).toFixed(2),'x');setEnv(['indoor','outdoor','urban'][Math.floor(r()*3)]);shotSeed=Math.floor(r()*9999)+1;update(true);return}
+  setSlider('weight',+(r()).toFixed(2));setSlider('bright',+(r()).toFixed(2));
+  setSlider('grit',+(r()).toFixed(2));setSlider('room',+(r()*.7).toFixed(2));setSlider('vary',+(.2+r()*.6).toFixed(2));
+  seed=Math.floor(r()*9999)+1;update(true)};
+document.addEventListener('keydown',e=>{
+  const tag=(e.target.tagName||'').toLowerCase();if(tag==='button'||(tag==='input'&&e.target.type!=='range'))return;
+  if(e.code==='Space'){e.preventDefault();ensureCtx();play()}
+  else if(e.key==='v'||e.key==='V'){$('vary').click()}
+});
+let rs=0;window.addEventListener('resize',()=>{cancelAnimationFrame(rs);rs=requestAnimationFrame(()=>{peaks=null;draw(-1)})});
+
+function setEnv(e){SP.env=e;['indoor','outdoor','urban'].forEach(k=>$('env-'+k).setAttribute('aria-pressed',k===e));setSlider('tailLen',ENV_TAIL[e],'x')}
+['indoor','outdoor','urban'].forEach(k=>$('env-'+k).onclick=()=>{ensureCtx();setEnv(k);update(true)});
+$('sup').addEventListener('change',()=>{ensureCtx();SP.sup=$('sup').checked;update(true)});
+$('shotAuto').addEventListener('change',()=>{ensureCtx();shotAuto=$('shotAuto').checked;update(true)});
+$('shotLen').addEventListener('change',()=>{ensureCtx();let v=parseFloat($('shotLen').value);if(!isFinite(v))v=shotLen;shotLen=Math.min(6,Math.max(.1,v));
+  shotAuto=false;$('shotAuto').checked=false;$('shotLen').value=shotLen.toFixed(2);update(true)});
+function setIEnv(e){IP.env=e;['indoor','outdoor','urban'].forEach(k=>$('ienv-'+k).setAttribute('aria-pressed',k===e));setSlider('tailLen',IENV_TAIL[e],'i')}
+['indoor','outdoor','urban'].forEach(k=>$('ienv-'+k).onclick=()=>{ensureCtx();setIEnv(k);update(true)});
+function headUI(){const ok=impKey==='flesh'||impKey==='armor';$('headWrap').hidden=!ok;$('headLbl').textContent=impKey==='armor'?'Helmet shot':'Headshot'}
+$('head').addEventListener('change',()=>{ensureCtx();IP.head=$('head').checked;update(true)});
+$('impAuto').addEventListener('change',()=>{ensureCtx();impAuto=$('impAuto').checked;update(true)});
+$('impLen').addEventListener('change',()=>{ensureCtx();let v=parseFloat($('impLen').value);if(!isFinite(v))v=impLen;impLen=Math.min(6,Math.max(.1,v));
+  impAuto=false;$('impAuto').checked=false;$('impLen').value=impLen.toFixed(2);update(true)});
+function setMode(m){
+  if(m===mode)return;mode=m;if(src){try{src.stop()}catch(e){}}cancelAnimationFrame(raf);
+  ['reload','shot','impact'].forEach(k=>{$('tab-'+k).setAttribute('aria-selected',m===k);$(k+'UI').hidden=m!==k});
+  try{history.replaceState(null,'',m==='reload'?location.pathname+location.search:'#'+m)}catch(e){}
+  $('vary').textContent=m==='reload'?'New take':'New variation';
+  buildPlatforms();cur=null;draw(-1);update(false);
+}
+['reload','shot','impact'].forEach(k=>$('tab-'+k).onclick=()=>setMode(k));
+
+buildSliders('sliders','s',CTRL);buildSliders('xLayers','x',SLAYERS);buildSliders('xShape','x',SSHAPE);buildSliders('iLayers','i',ILAYERS);buildSliders('iShape','i',ISHAPE);
+buildPlatforms();$('clipLen').value=clipLen.toFixed(2);buildChips();update(false);
+headUI();
+if(HOSTED)document.querySelectorAll('.export .note').forEach(n=>{n.textContent=n.textContent.replace('Files arrive as a .zip holding ','Exports are ').replace(' in a .zip','')+' Batches of six download as one .zip.'});
+if(location.hash==='#shot'||location.hash==='#impact')setMode(location.hash.slice(1));
+</script>
+
+</body>
+</html>
