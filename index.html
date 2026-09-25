@@ -81,6 +81,13 @@ kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-b
 .readout{margin-left:auto;display:flex;gap:18px;font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .readout b{color:var(--text);font-weight:500}
 .check{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;cursor:pointer}
+.vol{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;white-space:nowrap}
+.vol input{width:110px}
+.vol output{font-family:var(--mono);font-size:12px;color:var(--brass-hi);min-width:3.5ch;font-variant-numeric:tabular-nums}
+.xlvl{display:grid;gap:5px;flex:1 1 100%;max-width:420px}
+.credit{font-family:var(--mono);font-size:12px;color:var(--faint);text-align:center;padding-top:4px}
+.credit a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--line)}
+.credit a:hover{color:var(--brass-hi);border-bottom-color:var(--brass-dim)}
 .check input{accent-color:var(--brass)}
 
 /* lower grid */
@@ -169,7 +176,8 @@ input[type=range]::-moz-range-thumb{width:14px;height:18px;border-radius:2px;bac
       <button class="btn" id="vary" title="Same settings, new random take">New take</button>
       <button class="btn" id="surprise" title="Randomize every slider">Surprise me</button>
       <label class="check"><input type="checkbox" id="autoplay" checked> Play on change</label>
-      <div class="readout"><span>Take <b id="take">0001</b></span><span>Length <b id="len">0.00 s</b></span><span>Peak <b>−1 dBFS</b></span></div>
+      <label class="vol" for="pvol">Preview volume <input type="range" id="pvol" min="0" max="1" step="0.01" value="0.7"><output id="pvolOut">70%</output></label>
+      <div class="readout"><span>Take <b id="take">0001</b></span><span>Length <b id="len">0.00 s</b></span><span>Export peak <b id="peakOut">−1 dBFS</b></span></div>
     </div>
   </section>
 
@@ -191,6 +199,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:18px;border-radius:2px;bac
       <div class="export">
         <button class="btn primary" id="exp1">Export this take</button>
         <button class="btn" id="exp6">Export 6 takes</button>
+        <div class="sl xlvl"><div class="top"><label for="xlvl-r">Export level (peak)</label><output class="xlvlOut">−1.0 dBFS</output></div><input type="range" class="xlvl-in" id="xlvl-r" min="-24" max="0" step="0.5" value="-1"><p>−1 dBFS is full loudness. Preview volume only changes what you hear here.</p></div>
         <p class="note">Files arrive as a .zip holding 44.1 kHz 16-bit stereo WAVs, exactly the clip length, peak-normalized. Multiple takes help avoid repetition in-game.</p>
       </div>
     </section>
@@ -216,6 +225,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:18px;border-radius:2px;bac
       <div class="export">
         <button class="btn primary" id="xexp1">Export this shot</button>
         <button class="btn" id="xexp6">Export 6 variations</button>
+        <div class="sl xlvl"><div class="top"><label for="xlvl-x">Export level (peak)</label><output class="xlvlOut">−1.0 dBFS</output></div><input type="range" class="xlvl-in" id="xlvl-x" min="-24" max="0" step="0.5" value="-1"><p>−1 dBFS is full loudness. Preview volume only changes what you hear here.</p></div>
         <p class="note">44.1 kHz 16-bit stereo WAVs in a .zip. Round-robin the six variations so rapid fire never repeats one sample.</p>
       </div>
     </section>
@@ -241,10 +251,12 @@ input[type=range]::-moz-range-thumb{width:14px;height:18px;border-radius:2px;bac
       <div class="export">
         <button class="btn primary" id="iexp1">Export this impact</button>
         <button class="btn" id="iexp6">Export 6 variations</button>
+        <div class="sl xlvl"><div class="top"><label for="xlvl-i">Export level (peak)</label><output class="xlvlOut">−1.0 dBFS</output></div><input type="range" class="xlvl-in" id="xlvl-i" min="-24" max="0" step="0.5" value="-1"><p>−1 dBFS is full loudness. Preview volume only changes what you hear here.</p></div>
         <p class="note">44.1 kHz 16-bit stereo WAVs in a .zip. Pick a random variation per hit so repeated impacts never sound identical.</p>
       </div>
     </section>
   </div>
+  <footer class="credit">Made by Joonas Suuronen · <a href="https://github.com/joonas98" target="_blank" rel="noopener">GitHub: joonas98</a></footer>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -666,14 +678,15 @@ async function renderImpact(key,len,sd){
 }
 
 /* ---------- WAV + ZIP ---------- */
-function wav(buf){
+function wav(buf,gain){
+  gain=gain??xg();
   const ch=buf.numberOfChannels,n=buf.length,sr=buf.sampleRate,bytes=n*ch*2;
   const dv=new DataView(new ArrayBuffer(44+bytes));
   const w=(o,s)=>{for(let i=0;i<s.length;i++)dv.setUint8(o+i,s.charCodeAt(i))};
   w(0,'RIFF');dv.setUint32(4,36+bytes,true);w(8,'WAVE');w(12,'fmt ');dv.setUint32(16,16,true);dv.setUint16(20,1,true);dv.setUint16(22,ch,true);
   dv.setUint32(24,sr,true);dv.setUint32(28,sr*ch*2,true);dv.setUint16(32,ch*2,true);dv.setUint16(34,16,true);w(36,'data');dv.setUint32(40,bytes,true);
   const chans=[];for(let c=0;c<ch;c++)chans.push(buf.getChannelData(c));
-  let o=44;for(let i=0;i<n;i++)for(let c=0;c<ch;c++){const s=Math.max(-1,Math.min(1,chans[c][i]));dv.setInt16(o,s<0?s*32768:s*32767,true);o+=2}
+  let o=44;for(let i=0;i<n;i++)for(let c=0;c<ch;c++){const s=Math.max(-1,Math.min(1,chans[c][i]*gain));dv.setInt16(o,s<0?s*32768:s*32767,true);o+=2}
   return new Uint8Array(dv.buffer);
 }
 const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
@@ -780,7 +793,8 @@ function update(andPlay){
 function play(){
   if(!cur)return;ensureCtx();
   if(src){try{src.stop()}catch(e){}}
-  src=actx.createBufferSource();src.buffer=cur.buf;src.connect(actx.destination);src.start();playT0=actx.currentTime;
+  if(!pgain){pgain=actx.createGain();pgain.connect(actx.destination)}pgain.gain.value=pvol*pvol;
+  src=actx.createBufferSource();src.buffer=cur.buf;src.connect(pgain);src.start();playT0=actx.currentTime;
   cancelAnimationFrame(raf);
   const tick=()=>{const p=actx.currentTime-playT0;if(p>cur.buf.duration){draw(-1);return}draw(p);raf=requestAnimationFrame(tick)};tick();
 }
@@ -817,6 +831,21 @@ function draw(ph){
     g2.fillStyle=active?css('--brass-hi'):on?css('--text'):css('--faint');g2.fillText(label,Math.min(x+3,w-tw-2),row?26:13);
   });
   if(ph>=0){const x=xs(ph);g2.fillStyle=css('--text');g2.fillRect(x,top-4,1.5,bot-top+4)}
+}
+
+/* volume: preview is playback-only, export level scales the saved WAVs (renders peak at -1 dBFS) */
+let pvol=.7,xlvl=-1,pgain=null;
+function xg(){return Math.pow(10,(xlvl+1)/20)}
+{
+  const fill=el=>el.style.setProperty('--p',((el.value-el.min)/(el.max-el.min)*100)+'%');
+  try{const v=localStorage.getItem('reload-pvol');if(v!=null)pvol=+v}catch(e){}
+  try{const v=localStorage.getItem('reload-xlvl');if(v!=null)xlvl=+v}catch(e){}
+  const xs=[...document.querySelectorAll('.xlvl-in')];
+  const showVol=()=>{$('pvol').value=pvol;$('pvolOut').textContent=Math.round(pvol*100)+'%';fill($('pvol'))};
+  const showX=()=>{const t=(xlvl<0?'−':'')+Math.abs(xlvl).toFixed(1)+' dBFS';document.querySelectorAll('.xlvlOut').forEach(o=>o.textContent=t);$('peakOut').textContent=t;xs.forEach(i=>{i.value=xlvl;fill(i)})};
+  showVol();showX();
+  $('pvol').addEventListener('input',e=>{pvol=+e.target.value;if(pgain)pgain.gain.value=pvol*pvol;showVol();try{localStorage.setItem('reload-pvol',pvol)}catch(err){}});
+  xs.forEach(i=>i.addEventListener('input',e=>{xlvl=+e.target.value;showX();try{localStorage.setItem('reload-xlvl',xlvl)}catch(err){}}));
 }
 
 /* export */
